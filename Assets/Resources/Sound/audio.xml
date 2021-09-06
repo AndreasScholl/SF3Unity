@@ -1,0 +1,8 @@
+<audio>
+	<!-- sound effects -->
+	<sound name="switch" file="Sound/switch" />
+  
+	<!-- music tracks -->
+	<track name="sf3" file="Sound/sf3_music1"  volume="0,5" />
+
+</audio>
