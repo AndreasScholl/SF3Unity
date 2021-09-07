@@ -71,12 +71,13 @@ public class MemoryManager
     {
         int intValue = GetInt32(address);
 
-        float value = 0f;
+        //float value = 0f;
 
-        short integral = (short)(intValue >> 16);
-        int fraction = intValue & 0xffff;
+        //short integral = (short)(intValue >> 16);
+        //int fraction = intValue & 0xffff;
 
-        value = integral + ((float)fraction / (float)0x10000);
+        //value = integral + ((float)fraction / (float)0x10000);
+        float value = intValue / (float)0x10000;
 
         return value;
     }

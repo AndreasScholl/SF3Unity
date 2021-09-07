@@ -52,51 +52,51 @@ namespace Shiningforce
 
             MapData mapData = gameObject.AddComponent<MapData>();
             //mapData.ReadFile(_imagePath + "/BTL02.MPD");
-            mapData.ReadFile(_imagePath + "/SARA02.MPD");
-            //mapData.ReadFile(_imagePath + "/SARA06.MPD");
+            //mapData.ReadFile(_imagePath + "/SARA02.MPD");
+            mapData.ReadFile(_imagePath + "/SARA06.MPD");
             mapData.CreateObject(_opaqueMaterial, _transparentMaterial);
 
             // objects (test)
-            Transform camTransform = Camera.main.transform;
-            camTransform.position = new Vector3(-140.0f, 16f, -96f);
-            camTransform.eulerAngles = new Vector3(28f, 131f, 0f);
-            _cameraAngle = Camera.main.transform.localEulerAngles;
+            //Transform camTransform = Camera.main.transform;
+            //camTransform.position = new Vector3(-140.0f, 16f, -96f);
+            //camTransform.eulerAngles = new Vector3(28f, 131f, 0f);
+            //_cameraAngle = Camera.main.transform.localEulerAngles;
 
-            GameObject dantares = LoadObject(1);
-            dantares.transform.position = new Vector3(-133f, 0f, -114.5f);
-            dantares.transform.eulerAngles = new Vector3(0f, -90f, 0f);
+            //GameObject dantares = LoadObject(1);
+            //dantares.transform.position = new Vector3(-133f, 0f, -114.5f);
+            //dantares.transform.eulerAngles = new Vector3(0f, -90f, 0f);
 
-            GameObject masquirin = LoadObject(2);
-            masquirin.transform.position = new Vector3(-133f, 0f, -108f);
-            masquirin.transform.eulerAngles = new Vector3(0f, -90f, 0f);
+            //GameObject masquirin = LoadObject(2);
+            //masquirin.transform.position = new Vector3(-133f, 0f, -108f);
+            //masquirin.transform.eulerAngles = new Vector3(0f, -90f, 0f);
 
-            GameObject grace = LoadObject(3);
-            grace.transform.position = new Vector3(-134f, 0f, -111f);
-            grace.transform.eulerAngles = new Vector3(0f, -90f, 0f);
+            //GameObject grace = LoadObject(3);
+            //grace.transform.position = new Vector3(-134f, 0f, -111f);
+            //grace.transform.eulerAngles = new Vector3(0f, -90f, 0f);
 
-            GameObject monk1 = LoadObject(80, true);
-            GameObject monk2 = LoadObject(80, true);
-            GameObject monk3 = LoadObject(80, true);
-            GameObject monk4 = LoadObject(80, true);
-            GameObject monk5 = LoadObject(80, true);
-            monk1.transform.position = new Vector3(-123f, 0f, -113f);
-            monk2.transform.position = new Vector3(-123f, 0f, -109f);
-            monk3.transform.position = new Vector3(-121f, 0f, -106f);
-            monk4.transform.position = new Vector3(-121f, 0f, -115f);
-            monk5.transform.position = new Vector3(-119f, 0f, -111f);
-            monk1.transform.eulerAngles = new Vector3(0f, 90f, 0f);
-            monk2.transform.eulerAngles = new Vector3(0f, 90f, 0f);
-            monk3.transform.eulerAngles = new Vector3(0f, 90f, 0f);
-            monk4.transform.eulerAngles = new Vector3(0f, 90f, 0f);
-            monk5.transform.eulerAngles = new Vector3(0f, 90f, 0f);
+            //GameObject monk1 = LoadObject(80, true);
+            //GameObject monk2 = LoadObject(80, true);
+            //GameObject monk3 = LoadObject(80, true);
+            //GameObject monk4 = LoadObject(80, true);
+            //GameObject monk5 = LoadObject(80, true);
+            //monk1.transform.position = new Vector3(-123f, 0f, -113f);
+            //monk2.transform.position = new Vector3(-123f, 0f, -109f);
+            //monk3.transform.position = new Vector3(-121f, 0f, -106f);
+            //monk4.transform.position = new Vector3(-121f, 0f, -115f);
+            //monk5.transform.position = new Vector3(-119f, 0f, -111f);
+            //monk1.transform.eulerAngles = new Vector3(0f, 90f, 0f);
+            //monk2.transform.eulerAngles = new Vector3(0f, 90f, 0f);
+            //monk3.transform.eulerAngles = new Vector3(0f, 90f, 0f);
+            //monk4.transform.eulerAngles = new Vector3(0f, 90f, 0f);
+            //monk5.transform.eulerAngles = new Vector3(0f, 90f, 0f);
 
-            GameObject synbios = LoadObject(0);
-            synbios.transform.position = new Vector3(-131f, 0f, -111f);
-            synbios.transform.eulerAngles = new Vector3(0f, -90f, 0f);
+            //GameObject synbios = LoadObject(0);
+            //synbios.transform.position = new Vector3(-131f, 0f, -111f);
+            //synbios.transform.eulerAngles = new Vector3(0f, -90f, 0f);
 
-            _object = synbios;
-            _objectPos = synbios.transform.position;
-            _objectAngle = synbios.transform.eulerAngles;
+            //_object = synbios;
+            //_objectPos = synbios.transform.position;
+            //_objectAngle = synbios.transform.eulerAngles;
 
             return;
 
@@ -148,13 +148,8 @@ namespace Shiningforce
             return null;
         }
 
-        void Update()
+        void AnimateCamera()
         {
-            if (_imagePath == "")
-            {
-                return;
-            }
-
             //_cameraAngle.x = Camera.main.transform.localEulerAngles.x;
             //_cameraAngle.y += (Time.deltaTime / 20f) * 360f;
             //Camera.main.transform.localEulerAngles = _cameraAngle;
@@ -163,11 +158,12 @@ namespace Shiningforce
 
             float time = _cameraTime - _cameraStartTime;
             float percentage = time / _cameraDuration;
+
             if (percentage > 1f)
             {
                 percentage = 1f;
             }
-            if (percentage < 0f)
+            if (percentage< 0f)
             {
                 percentage = 0f;
                 Camera.main.transform.position = _camPos1;
@@ -182,6 +178,16 @@ namespace Shiningforce
                 Camera.main.transform.eulerAngles = Vector3.SmoothDamp(Camera.main.transform.eulerAngles, _camAngle2, ref _currentAngleVelocity, _cameraDuration);
                 //Camera.main.transform.eulerAngles = Vector3.Lerp(_camAngle1, _camAngle2, percentage);
             }
+        }
+
+        void Update()
+        {
+            if (_imagePath == "")
+            {
+                return;
+            }
+
+            //AnimateCamera();
 
             Keyboard keyboard = Keyboard.current;
 

@@ -27,12 +27,15 @@ namespace Shiningforce
         int _mapObjectOffset;
         //int _mapObjectSize;
         int _surfaceDataPointer;
+        int _surfaceDataSize;
         int _textureAnimationDataPointer;
 
         List<int> _textureGroupOffsets = new List<int>();
 
         ModelData _model;
         ModelTexture _modelTexture;
+
+        int _surfacePartIndex = -1;
 
         List<MapObjectHeader> _mapObjects = new List<MapObjectHeader>();
         List<Texture2D> _mapTextures = new List<Texture2D>();
@@ -83,6 +86,7 @@ namespace Shiningforce
             int end = file.IndexOf('.');
             _name = file.Substring(start, end - start);
 
+            // prepare model and texture for map object
             _model = new ModelData();
             _model.Init();
 
@@ -92,7 +96,6 @@ namespace Shiningforce
             _modelTexture.Init(false, textureWidth, textureHeight);
             _model.ModelTexture = _modelTexture;
 
-            //_data = File.ReadAllBytes(file);
             _memory = new MemoryManager(0x200000);
             _memory.LoadFile(file, MEMORY_MPDBASE);
 
@@ -103,7 +106,128 @@ namespace Shiningforce
             ReadMapTextureAnimations();
             ReadMapObjects();
 
+            ReadSurfaceTiles();
+
             return true;
+        }
+
+        void ReadSurfaceTiles()
+        {
+            if (_surfaceDataSize == 0)
+            {
+                Debug.Log("no surface tiles");
+                return;
+            }
+
+            // create modelpart for surface
+            ModelPart part = new ModelPart();
+            part.Init();
+            _surfacePartIndex = _model.Parts.Count;
+            _model.Parts.Add(part);
+
+            int readPointer = _surfaceDataPointer;
+
+            // 16x16 blocks a 4x4 tiles
+            for (int blockY = 0; blockY < 16; blockY++)
+            {
+                for (int blockX = 0; blockX < 16; blockX++)
+                {
+                    for (int tileY = 0; tileY < 4; tileY++)
+                    {
+                        for (int tileX = 0; tileX < 4; tileX++)
+                        {
+                            int tile = _memory.GetInt16(readPointer);
+                            Debug.Log(tile.ToString("X4"));
+
+                            readPointer += 2;
+
+                            if (tile != 0xff)
+                            {
+                                tile = tile & 0xff;
+
+                                bool transparent = false;
+                                bool halftransparent = false;
+                                bool hflip = false;
+                                bool vflip = false;
+                                bool doubleSided = false;
+                                Color rgbColor = Color.white;
+                                Vector3 faceNormal = new Vector3(0f, 1f, 0f);
+
+                                Vector2 uvA, uvB, uvC, uvD;
+
+                                // add texture to atlas
+                                Texture2D texture = _mapTextures[tile];
+
+                                if (_modelTexture.ContainsTexture(texture) == false)
+                                {
+                                    _modelTexture.AddTexture(texture, transparent, halftransparent);
+                                }
+
+                                _modelTexture.AddUv(texture, hflip, vflip, out uvA, out uvB, out uvC, out uvD); // add texture uv
+
+                                const float tileSize = 32f;
+
+                                Vector3 vA, vB, vC, vD;
+                                vA = new Vector3(((blockX * 4) + tileX) * tileSize, 0f, ((blockY * 4) + tileY) * tileSize);
+                                vB = vA;
+                                vB.x += tileSize;
+                                vC = vB;
+                                vC.z += tileSize;
+                                vD = vA;
+                                vD.z += tileSize;
+
+                                int subDivide = 1;
+
+                                part.AddPolygon(vA, vB, vC, vD,
+                                                halftransparent, doubleSided,
+                                                rgbColor, rgbColor, rgbColor, rgbColor,
+                                                uvA, uvB, uvC, uvD,
+                                                faceNormal, faceNormal, faceNormal, faceNormal, subDivide, true, -1);
+                            }
+                        }
+                    }
+                }
+            }
+
+            _modelTexture.ApplyTexture();
+
+            // 16x16 blocks a 5x5 tiles or structures
+            for (int blockY = 0; blockY < 16; blockY++)
+            {
+                for (int blockX = 0; blockX < 16; blockX++)
+                {
+                    for (int tileY = 0; tileY < 5; tileY++)
+                    {
+                        for (int tileX = 0; tileX < 5; tileX++)
+                        {
+                            int a = _memory.GetInt16(readPointer);
+                            int b = _memory.GetInt16(readPointer + 2);
+                            int c = _memory.GetInt16(readPointer + 4);
+                            Debug.Log(a.ToString("X4") + " " + b.ToString("X4") + " " + c.ToString("X4"));
+
+                            readPointer += 6;
+                        }
+                    }
+                }
+            }
+
+            // 16x16 blocks a 5x5 tiles or structures
+            for (int blockY = 0; blockY < 16; blockY++)
+            {
+                for (int blockX = 0; blockX < 16; blockX++)
+                    {
+                    for (int tileY = 0; tileY < 5; tileY++)
+                    {
+                        for (int tileX = 0; tileX < 5; tileX++)
+                        {
+                            int value = _memory.GetByte(readPointer);
+                            Debug.Log(value.ToString("X02"));
+
+                            readPointer++;
+                        }
+                    }
+                }
+            }
         }
 
         void ReadElementOffsets()
@@ -114,6 +238,7 @@ namespace Shiningforce
             //_mapObjectSize = _memory.GetInt32(MEMORY_MAPOBJECT_OFFSET + 4);
 
             _surfaceDataPointer = _memory.GetInt32(MEMORY_SURFACEDATA_POINTER);
+            _surfaceDataSize = _memory.GetInt32(MEMORY_SURFACEDATA_POINTER + 4);
             _textureAnimationDataPointer = _memory.GetInt32(MEMORY_TEXTURE_ANIMATION_DATA_POINTER);
 
             Debug.Log(_mapObjectOffset.ToString("X6"));
@@ -537,14 +662,22 @@ namespace Shiningforce
 
                     part.Pivot = partPivot;
 
-                    MapObjectHeader objectHeader = _mapObjects[partIndex];
-                    partPivot.transform.localPosition = objectHeader.Position;
-                    partPivot.transform.localScale = objectHeader.Scale;
+                    if (partIndex < _mapObjects.Count)
+                    {
+                        MapObjectHeader objectHeader = _mapObjects[partIndex];
+                        partPivot.transform.localPosition = objectHeader.Position;
+                        partPivot.transform.localScale = objectHeader.Scale;
 
-                    Quaternion rotation = Quaternion.AngleAxis(objectHeader.EulerAngles.z, Vector3.forward) *
-                                          Quaternion.AngleAxis(objectHeader.EulerAngles.y, Vector3.up) *
-                                          Quaternion.AngleAxis(objectHeader.EulerAngles.x, Vector3.right);
-                    partPivot.transform.rotation = rotation;
+                        Quaternion rotation = Quaternion.AngleAxis(objectHeader.EulerAngles.z, Vector3.forward) *
+                                              Quaternion.AngleAxis(objectHeader.EulerAngles.y, Vector3.up) *
+                                              Quaternion.AngleAxis(objectHeader.EulerAngles.x, Vector3.right);
+                        partPivot.transform.rotation = rotation;
+                    }
+                    else if (partIndex == _surfacePartIndex)
+                    {
+                        partPivot.transform.localPosition = new Vector3(0f, 0f, 0f);
+                        partPivot.transform.localScale = new Vector3(-1f, 1f, -1f);
+                    }
                 }
             }
 
