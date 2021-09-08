@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Util;
 
 namespace Shiningforce
 {
@@ -23,10 +24,13 @@ namespace Shiningforce
         private Vector3 _cameraAngle;
 
         private Vector3 _camPos1 = new Vector3(-80.64f, 23.10f, -63.18f);
-        private Vector3 _camAngle1 = new Vector3(20.63f, 222.58f, -0f);
+        private Vector3 _camAngle1 = new Vector3(20.63f, 222.58f, 0f);
 
         private Vector3 _camPos2 = new Vector3(-126.86f, 6.53f, -98.01f);
         private Vector3 _camAngle2 = new Vector3(14.44f, 189.76f, 0f);
+
+        private Vector3 _camPosOverview = new Vector3(-200f, 150f, -200f);
+        private Vector3 _camAngleOverview = new Vector3(40.0f, 40.0f, 0f);
 
         private float _cameraTime = 0f;
         public float _cameraStartTime = 5f;
@@ -36,6 +40,10 @@ namespace Shiningforce
         private Vector3 _currentAngleVelocity = Vector3.zero;
 
         string _imagePath;
+
+        string[] _mapFiles;
+        GameObject _mapRoot = null;
+        int _mapCount = 0;
 
         void Start()
         {
@@ -50,11 +58,16 @@ namespace Shiningforce
 
             //AudioPlayer.GetInstance().PlayTrack("sf3");
 
-            MapData mapData = gameObject.AddComponent<MapData>();
-            //mapData.ReadFile(_imagePath + "/BTL02.MPD");
-            //mapData.ReadFile(_imagePath + "/SARA02.MPD");
-            mapData.ReadFile(_imagePath + "/SARA06.MPD");
-            mapData.CreateObject(_opaqueMaterial, _transparentMaterial);
+            _mapFiles = Directory.GetFiles(_imagePath, "*.mpd", SearchOption.AllDirectories);
+
+            _mapCount = GetMapIndex("BTL02");
+            //_mapCount = GetMapIndex("SARA02");
+            CreateMap(_mapCount);
+
+            // map test
+            Transform camTransform = Camera.main.transform;
+            camTransform.position = _camPosOverview;
+            camTransform.eulerAngles = _camAngleOverview;
 
             // objects (test)
             //Transform camTransform = Camera.main.transform;
@@ -254,6 +267,19 @@ namespace Shiningforce
                     _anim.Play("anim0");
                 }
             }
+
+            if (keyboard.f4Key.wasPressedThisFrame)
+            {
+                _mapCount++;
+
+                if (_mapCount == _mapFiles.Length)
+                {
+                    _mapCount = 0;
+                }
+
+                CreateMap(_mapCount);
+
+            }
         }
 
         private string GetImagePath()
@@ -296,6 +322,45 @@ namespace Shiningforce
             }
 
             return false;
+        }
+
+        private void CreateMap(int mapCount)
+        {
+            // destroy loaded map
+            MapData mapData = gameObject.GetComponent<MapData>();
+            if (mapData)
+            {
+                Destroy(mapData);
+            }
+
+            if (_mapRoot)
+            {
+                Destroy(_mapRoot);
+
+                _mapRoot = null;
+            }
+
+
+            mapData = gameObject.AddComponent<MapData>();
+            mapData.ReadFile(_mapFiles[_mapCount]);
+            _mapRoot = mapData.CreateObject(_opaqueMaterial, _transparentMaterial);
+        }
+
+        private int GetMapIndex(string mapName)
+        {
+            int index = 0;
+
+            foreach (string mapPath in _mapFiles)
+            {
+                if (FileSystemHelper.GetFileNameWithoutExtensionFromPath(mapPath).ToLower() == mapName.ToLower())
+                {
+                    return index;
+                }
+
+                index++;
+            }
+
+            return -1;
         }
     }
 }

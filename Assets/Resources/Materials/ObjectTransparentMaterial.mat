@@ -68,10 +68,10 @@ Material:
     - _DstBlend: 10
     - _EmissionVC: 0.5
     - _GlossMapScale: 0.406
-    - _Glossiness: 0.4
+    - _Glossiness: 0.2
     - _GlossyReflections: 1
     - _IntensityVC: 2
-    - _Metallic: 0.3
+    - _Metallic: 0.1
     - _Mode: 3
     - _OcclusionStrength: 1
     - _Parallax: 0.02

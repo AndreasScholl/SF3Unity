@@ -1,16 +1,10 @@
 ﻿using System;
 using System.IO;
-using UnityEngine;
 
-namespace DashImporter
+namespace Util
 {
     public static class FileSystemHelper
     {
-        public static string[] PictureFileFormats = new String[] 
-        {
-            "*.jpg", "*.jpeg", "*.png", "*.gif", "*.tiff", "*.tif", "*.bmp", "*.hdr"
-	    };
-
         public static bool DirectoryExistsAndHasFiles(string directory)
         {
             if (Directory.Exists(directory))
@@ -189,8 +183,6 @@ namespace DashImporter
 
             foreach (string filePath in filestodelete)
             {
-                File.Delete(filePath);
-                //    string metaFile = filePath.Replace(fileEnding.Substring(1), ".meta");
                 File.Delete(filePath);
             }
         }

@@ -87,9 +87,9 @@ namespace Shiningforce
             public int Type;
         }
 
-        public bool ReadFile(string file)
+        public bool ReadFile(string filePath)
         {
-            if (File.Exists(file) == false)
+            if (File.Exists(filePath) == false)
             {
                 return false;
             }
@@ -105,11 +105,9 @@ namespace Shiningforce
 
             //Debug.Log(pltOffset.ToString("X6"));
 
-            int start = file.LastIndexOf('/');
-            int end = file.IndexOf('.');
-            _name = file.Substring(start, end - start);
+            _name = Util.FileSystemHelper.GetFileNameWithoutExtensionFromPath(filePath);
 
-            _data = File.ReadAllBytes(file);
+            _data = File.ReadAllBytes(filePath);
 
             // read header
             _offsetTextureDef = ByteArray.GetInt32(_data, 0x00);

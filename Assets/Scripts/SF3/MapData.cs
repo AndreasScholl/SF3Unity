@@ -75,17 +75,16 @@ namespace Shiningforce
             public Texture2D Texture;
         }
 
-        public bool ReadFile(string file)
+        public bool ReadFile(string filePath)
         {
-            if (File.Exists(file) == false)
+            if (File.Exists(filePath) == false)
             {
                 return false;
             }
 
             // extract name from path
-            int start = file.LastIndexOf('/');
-            int end = file.IndexOf('.');
-            _name = file.Substring(start, end - start);
+            _name = Util.FileSystemHelper.GetFileNameWithoutExtensionFromPath(filePath);
+            Debug.Log("Map: " + _name);
 
             // prepare model and texture for map object
             _model = new ModelData();
@@ -98,7 +97,7 @@ namespace Shiningforce
             _model.ModelTexture = _modelTexture;
 
             _memory = new MemoryManager(0x200000);
-            _memory.LoadFile(file, MEMORY_MPDBASE);
+            _memory.LoadFile(filePath, MEMORY_MPDBASE);
 
             ReadHeaderInfo();
             ReadElementOffsets();
@@ -158,6 +157,11 @@ namespace Shiningforce
                             float x = a / (float)0x100;
                             float y = b / (float)0x100;
                             float z = c / (float)0x100;
+
+                            //float x = _memory.GetFloat16(normalReadPointer);
+                            //float y = _memory.GetFloat16(normalReadPointer + 2);
+                            //float z = _memory.GetFloat16(normalReadPointer + 4);
+
                             //Debug.Log(a.ToString("X4") + " " + b.ToString("X4") + " " + c.ToString("X4"));
                             //Debug.Log(a + " " + b + " " + c);
                             //Debug.Log(x + " " + y + " " + z);
