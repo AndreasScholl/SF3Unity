@@ -311,15 +311,6 @@ namespace Shiningforce
 
                 int xpDataPointer = CorrectMapObjectPointer(header.Pointers[0]);
                 ImportMeshFromOffset(xpDataPointer);
-
-                //foreach (int pointer in header.Pointers)
-                //{
-                //    int xpDataPointer = CorrectMapObjectPointer(pointer);
-
-                //    Debug.Log("xpdata: " + xpDataPointer.ToString("X6"));
-
-                //    ImportMeshFromOffset(xpDataPointer);
-                //}
             }
 
             _model.ModelTexture.ApplyTexture();
@@ -369,9 +360,9 @@ namespace Shiningforce
             {
                 // face normal
                 float nX, nY, nZ;
-                nX = _memory.GetFloat(pointsOffset);
-                nY = _memory.GetFloat(pointsOffset + 4);
-                nZ = _memory.GetFloat(pointsOffset + 8);
+                nX = _memory.GetFloat(polygonOffset);
+                nY = _memory.GetFloat(polygonOffset + 4);
+                nZ = _memory.GetFloat(polygonOffset  + 8);
                 Vector3 faceNormal = new Vector3(nX, nY, nZ);
                 //Debug.Log(faceNormal);
 
@@ -431,7 +422,7 @@ namespace Shiningforce
                 uvD = Vector2.zero;
 
                 Color rgbColor = ColorHelper.Convert(colno);
-                //rgbColor = Color.white;
+                rgbColor = Color.white;
 
                 TextureAnimation textureAnimation = GetTextureAnimationByGroupId(texno);
                 int animationGroupId = -1;
@@ -469,7 +460,7 @@ namespace Shiningforce
                 vC = points[c];
                 vD = points[d];
 
-                int subDivide = 2;
+                int subDivide = 1;
 
                 part.AddPolygon(vA, vB, vC, vD,
                                 halftransparent, doubleSided,
