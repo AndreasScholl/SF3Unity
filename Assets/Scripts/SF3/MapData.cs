@@ -16,10 +16,10 @@ namespace Shiningforce
 
         const int MEMORY_POINTER_TABLE_OFFSET = 0x2000;
         const int MEMORY_MAPOBJECTS_POINTER = MEMORY_MPDBASE + MEMORY_POINTER_TABLE_OFFSET + (1 * 8);
-        const int MEMORY_SURFACEDATA_POINTER = MEMORY_MPDBASE + MEMORY_POINTER_TABLE_OFFSET + (2 * 8);
+        const int MEMORY_SURFACE_DATA_POINTER = MEMORY_MPDBASE + MEMORY_POINTER_TABLE_OFFSET + (2 * 8);
         const int MEMORY_TEXTURE_ANIMATION_DATA_POINTER = MEMORY_MPDBASE + MEMORY_POINTER_TABLE_OFFSET + (3 * 8);
         //const int MEMORY_UNKNOWNEMPTY_POINTER = MEMORY_MPDBASE + MEMORY_POINTER_TABLE_OFFSET + (4 * 8);
-        const int MEMORY_SURFACE2_POINTER = MEMORY_MPDBASE + MEMORY_POINTER_TABLE_OFFSET + (5 * 8);
+        const int MEMORY_SURFACE_HEIGHTS_POINTER = MEMORY_MPDBASE + MEMORY_POINTER_TABLE_OFFSET + (5 * 8);
         const int MEMORY_TEXTUREGROUPS_POINTER = MEMORY_MPDBASE + MEMORY_POINTER_TABLE_OFFSET + (6 * 8);
 
         const int MEMORY_MAPOBJECT_DATA = MEMORY_MPDBASE + 0x2100;
@@ -28,6 +28,7 @@ namespace Shiningforce
         //int _mapObjectSize;
         int _surfaceDataPointer;
         int _surfaceDataSize;
+        int _surfaceHeightsPointer;
         int _textureAnimationDataPointer;
 
         List<int> _textureGroupOffsets = new List<int>();
@@ -111,11 +112,19 @@ namespace Shiningforce
             return true;
         }
 
+        int GetNormalIndexByBlockAndInner(int blockX, int blockY, int innerX, int innerY)
+        {
+            int normalBlockIndex = (((blockY * 16) + blockX) * 25);
+            int normalIndex = normalBlockIndex + (innerY * 5) + innerX;
+
+            return normalIndex;
+        }
+
         void ReadSurfaceTiles()
         {
             if (_surfaceDataSize == 0)
             {
-                Debug.Log("no surface tiles");
+                Debug.Log("No surface tiles on this map!");
                 return;
             }
 
@@ -125,64 +134,163 @@ namespace Shiningforce
             _surfacePartIndex = _model.Parts.Count;
             _model.Parts.Add(part);
 
+            byte[] heightData = Decompression.DecompressData(_memory.Data, _surfaceHeightsPointer - _memory.Base);
+            Debug.Log("heightData size: " + heightData.Length);
+
             int readPointer = _surfaceDataPointer;
+            int sizeTileData = 64 * 64 * 2;
+            int normalReadPointer = _surfaceDataPointer + sizeTileData;
+
+            // 16x16 blocks a 5x5 tiles or structures
+            List<Vector3> vertexNormals = new List<Vector3>();
+            
+            for (int blockY = 0; blockY < 16; blockY++)
+            {
+                for (int blockX = 0; blockX < 16; blockX++)
+                {
+                    for (int tileY = 0; tileY < 5; tileY++)
+                    {
+                        for (int tileX = 0; tileX < 5; tileX++)
+                        {
+                            short a = (short)_memory.GetInt16(normalReadPointer);
+                            short b = (short)_memory.GetInt16(normalReadPointer + 2);
+                            short c = (short)_memory.GetInt16(normalReadPointer + 4);
+                            float x = a / (float)0x100;
+                            float y = b / (float)0x100;
+                            float z = c / (float)0x100;
+                            //Debug.Log(a.ToString("X4") + " " + b.ToString("X4") + " " + c.ToString("X4"));
+                            //Debug.Log(a + " " + b + " " + c);
+                            //Debug.Log(x + " " + y + " " + z);
+                            Vector3 normal = new Vector3(x, y, z);
+                            vertexNormals.Add(normal);
+                            normalReadPointer += 6;
+                        }
+                    }
+                }
+            }
 
             // 16x16 blocks a 4x4 tiles
             for (int blockY = 0; blockY < 16; blockY++)
             {
                 for (int blockX = 0; blockX < 16; blockX++)
                 {
-                    for (int tileY = 0; tileY < 4; tileY++)
+                    for (int innerY = 0; innerY < 4; innerY++)
                     {
-                        for (int tileX = 0; tileX < 4; tileX++)
+                        for (int innerX = 0; innerX < 4; innerX++)
                         {
-                            int tile = _memory.GetInt16(readPointer);
-                            Debug.Log(tile.ToString("X4"));
+                            int tileX = blockX * 4 + innerX;
+                            int tileY = blockY * 4 + innerY;
+
+                            int heightDataOffset = ((tileY * 64) + tileX) * 4;
+                            int heightA = (0x100 - heightData[heightDataOffset + 1]) * 2;
+                            int heightB = (0x100 - heightData[heightDataOffset]) * 2;
+                            int heightC = (0x100 - heightData[heightDataOffset + 3]) * 2;
+                            int heightD = (0x100 - heightData[heightDataOffset + 2]) * 2;
+                            //Debug.Log(heightA.ToString("X2") + " " + heightB.ToString("X2") + " " + 
+                            //          heightC.ToString("X2") + " " + heightD.ToString("X2"));
+
+                            int normalIndex1 = GetNormalIndexByBlockAndInner(blockX, blockY, innerX, innerY);
+                            int normalIndex2 = GetNormalIndexByBlockAndInner(blockX, blockY, innerX + 1, innerY);
+                            int normalIndex3 = GetNormalIndexByBlockAndInner(blockX, blockY, innerX + 1, innerY + 1);
+                            int normalIndex4 = GetNormalIndexByBlockAndInner(blockX, blockY, innerX, innerY + 1);
+
+                            Vector3 nA = vertexNormals[normalIndex1];
+                            Vector3 nB = vertexNormals[normalIndex2];
+                            Vector3 nC = vertexNormals[normalIndex3];
+                            Vector3 nD = vertexNormals[normalIndex4];
+
+                            int tileData = _memory.GetInt16(readPointer);
+                            //Debug.Log(tileData.ToString("X4"));
 
                             readPointer += 2;
 
-                            if (tile != 0xff)
-                            {
-                                tile = tile & 0xff;
+                            int attribute = tileData & 0xff00;
 
+                            //if (attribute != 00)
+                            //{
+                            //    Debug.Log("attr: " + attribute.ToString("X2"));
+                            //}
+
+                            int tileTexture = tileData & 0xff;
+
+                            if (tileTexture != 0xff)
+                            {
                                 bool transparent = false;
                                 bool halftransparent = false;
-                                bool hflip = false;
-                                bool vflip = false;
+                                bool hflip = (attribute & 0x1000) != 0;
+                                bool vflip = (attribute & 0x2000) == 0;
                                 bool doubleSided = false;
                                 Color rgbColor = Color.white;
                                 Vector3 faceNormal = new Vector3(0f, 1f, 0f);
 
                                 Vector2 uvA, uvB, uvC, uvD;
+                                uvA = Vector2.zero;
+                                uvB = Vector2.zero;
+                                uvC = Vector2.zero;
+                                uvD = Vector2.zero;
 
-                                // add texture to atlas
-                                Texture2D texture = _mapTextures[tile];
+                                TextureAnimation textureAnimation = GetTextureAnimationByGroupId(tileTexture);
+                                int animationGroupId = -1;
 
-                                if (_modelTexture.ContainsTexture(texture) == false)
+                                // textured polygon
+                                rgbColor = Color.white;
+
+                                if (textureAnimation == null)
                                 {
-                                    _modelTexture.AddTexture(texture, transparent, halftransparent);
+                                    // add texture to atlas
+                                    Texture2D texture = _mapTextures[tileTexture];
+
+                                    if (_modelTexture.ContainsTexture(texture) == false)
+                                    {
+                                        _modelTexture.AddTexture(texture, transparent, halftransparent);
+                                    }
+
+                                    _modelTexture.AddUv(texture, hflip, vflip, out uvA, out uvB, out uvC, out uvD); // add texture uv
+                                }
+                                else
+                                {
+                                    // get uv based on texture animation sheet
+                                    _modelTexture.GetSheetUv(textureAnimation.Texture, textureAnimation.Width, textureAnimation.Height,
+                                                                hflip, vflip, out uvA, out uvB, out uvC, out uvD);
+
+                                    animationGroupId = textureAnimation.Group;
                                 }
 
-                                _modelTexture.AddUv(texture, hflip, vflip, out uvA, out uvB, out uvC, out uvD); // add texture uv
+                                //// add texture to atlas
+                                //Texture2D texture = _mapTextures[tileTexture];
+
+                                //if (_modelTexture.ContainsTexture(texture) == false)
+                                //{
+                                //    _modelTexture.AddTexture(texture, transparent, halftransparent);
+                                //}
+
+                                //_modelTexture.AddUv(texture, hflip, vflip, out uvA, out uvB, out uvC, out uvD); // add texture uv
 
                                 const float tileSize = 32f;
 
                                 Vector3 vA, vB, vC, vD;
-                                vA = new Vector3(((blockX * 4) + tileX) * tileSize, 0f, ((blockY * 4) + tileY) * tileSize);
+                                vA = new Vector3(((blockX * 4) + innerX) * tileSize, 0f, ((blockY * 4) + innerY) * tileSize);
+                                vA.y = heightA;
+
                                 vB = vA;
+                                vB.y = heightB;
                                 vB.x += tileSize;
+
                                 vC = vB;
+                                vC.y = heightC;
                                 vC.z += tileSize;
+
                                 vD = vA;
+                                vD.y = heightD;
                                 vD.z += tileSize;
 
-                                int subDivide = 1;
+                                int subDivide = 2;
 
                                 part.AddPolygon(vA, vB, vC, vD,
                                                 halftransparent, doubleSided,
                                                 rgbColor, rgbColor, rgbColor, rgbColor,
                                                 uvA, uvB, uvC, uvD,
-                                                faceNormal, faceNormal, faceNormal, faceNormal, subDivide, true, -1);
+                                                nA, nB, nC, nD, subDivide, true, animationGroupId);
                             }
                         }
                     }
@@ -203,7 +311,7 @@ namespace Shiningforce
                             int a = _memory.GetInt16(readPointer);
                             int b = _memory.GetInt16(readPointer + 2);
                             int c = _memory.GetInt16(readPointer + 4);
-                            Debug.Log(a.ToString("X4") + " " + b.ToString("X4") + " " + c.ToString("X4"));
+                            //Debug.Log(a.ToString("X4") + " " + b.ToString("X4") + " " + c.ToString("X4"));
 
                             readPointer += 6;
                         }
@@ -211,23 +319,23 @@ namespace Shiningforce
                 }
             }
 
-            // 16x16 blocks a 5x5 tiles or structures
-            for (int blockY = 0; blockY < 16; blockY++)
-            {
-                for (int blockX = 0; blockX < 16; blockX++)
-                    {
-                    for (int tileY = 0; tileY < 5; tileY++)
-                    {
-                        for (int tileX = 0; tileX < 5; tileX++)
-                        {
-                            int value = _memory.GetByte(readPointer);
-                            Debug.Log(value.ToString("X02"));
+            //// 16x16 blocks a 5x5 tiles or structures
+            //for (int blockY = 0; blockY < 16; blockY++)
+            //{
+            //    for (int blockX = 0; blockX < 16; blockX++)
+            //        {
+            //        for (int tileY = 0; tileY < 5; tileY++)
+            //        {
+            //            for (int tileX = 0; tileX < 5; tileX++)
+            //            {
+            //                int value = _memory.GetByte(readPointer);
+            //                //Debug.Log(value.ToString("X02"));
 
-                            readPointer++;
-                        }
-                    }
-                }
-            }
+            //                readPointer++;
+            //            }
+            //        }
+            //    }
+            //}
         }
 
         void ReadElementOffsets()
@@ -237,13 +345,15 @@ namespace Shiningforce
             _mapObjectOffset = _memory.GetInt32(MEMORY_MAPOBJECTS_POINTER);
             //_mapObjectSize = _memory.GetInt32(MEMORY_MAPOBJECT_OFFSET + 4);
 
-            _surfaceDataPointer = _memory.GetInt32(MEMORY_SURFACEDATA_POINTER);
-            _surfaceDataSize = _memory.GetInt32(MEMORY_SURFACEDATA_POINTER + 4);
+            _surfaceDataPointer = _memory.GetInt32(MEMORY_SURFACE_DATA_POINTER);
+            _surfaceDataSize = _memory.GetInt32(MEMORY_SURFACE_DATA_POINTER + 4);
+            _surfaceHeightsPointer = _memory.GetInt32(MEMORY_SURFACE_HEIGHTS_POINTER);
             _textureAnimationDataPointer = _memory.GetInt32(MEMORY_TEXTURE_ANIMATION_DATA_POINTER);
 
-            Debug.Log(_mapObjectOffset.ToString("X6"));
-            Debug.Log(_surfaceDataPointer.ToString("X6"));
-            Debug.Log(_textureAnimationDataPointer.ToString("X6"));
+            //Debug.Log(_mapObjectOffset.ToString("X6"));
+            //Debug.Log(_surfaceDataPointer.ToString("X6"));
+            //Debug.Log(_surfaceHeightsPointer.ToString("X6"));
+            //Debug.Log(_textureAnimationDataPointer.ToString("X6"));
 
             // 8 texture group offsets
             for (int count = 0; count < 8; count++)
@@ -251,7 +361,7 @@ namespace Shiningforce
                 int textureGroup = _memory.GetInt32(MEMORY_TEXTUREGROUPS_POINTER + (count * 8));
                 _textureGroupOffsets.Add(textureGroup);
 
-                Debug.Log("texture group: " + textureGroup.ToString("X6"));
+                //Debug.Log("texture group: " + textureGroup.ToString("X6"));
             }
         }
 
@@ -266,7 +376,7 @@ namespace Shiningforce
 
             int numObjects = _memory.GetInt16(_mapObjectOffset + 0x08);
 
-            Debug.Log("num objects: " + numObjects.ToString("X4"));
+            //Debug.Log("num objects: " + numObjects.ToString("X4"));
 
             int readPointer = _mapObjectOffset + 0x0c;
 
@@ -666,7 +776,7 @@ namespace Shiningforce
                     }
                     else if (partIndex == _surfacePartIndex)
                     {
-                        partPivot.transform.localPosition = new Vector3(0f, 0f, 0f);
+                        partPivot.transform.localPosition = new Vector3(0f, -512f, 0f);
                         partPivot.transform.localScale = new Vector3(-1f, 1f, -1f);
                     }
                 }
@@ -697,8 +807,8 @@ namespace Shiningforce
                     int numTextures = ByteArray.GetInt16(decompressedTextures, 0);
                     int textureIdStart = ByteArray.GetInt16(decompressedTextures, 2);
 
-                    Debug.Log("num textures: " + numTextures);
-                    Debug.Log("textureIdStart: " + textureIdStart);
+                    //Debug.Log("num textures: " + numTextures);
+                    //Debug.Log("textureIdStart: " + textureIdStart);
 
                     int defOffset = 4;
                     for (int textureCount = 0; textureCount < numTextures; textureCount++)
@@ -740,10 +850,10 @@ namespace Shiningforce
                 animation.Speed = _memory.GetInt16(readPointer + 6);
                 readPointer += 8;
 
-                Debug.Log("txanim group: " + groupIndex);
-                Debug.Log("txanim width: " + animation.Width);
-                Debug.Log("txanim height: " + animation.Height);
-                Debug.Log("txanim speed: " + animation.Speed);
+                //Debug.Log("txanim group: " + groupIndex);
+                //Debug.Log("txanim width: " + animation.Width);
+                //Debug.Log("txanim height: " + animation.Height);
+                //Debug.Log("txanim speed: " + animation.Speed);
 
                 while (true)
                 {
@@ -806,7 +916,7 @@ namespace Shiningforce
             int offset4 = _memory.GetInt32(headerPointer + 0x14);
             _textureAnimationsMemory = _memory.GetInt32(headerPointer + 0x18);
 
-            Debug.Log("texture animations: " + _textureAnimationsMemory.ToString("X6"));
+            //Debug.Log("texture animations: " + _textureAnimationsMemory.ToString("X6"));
         }
 
         Texture2D CreateTextureFromMemory(byte[] data, int offset, int width, int height)
