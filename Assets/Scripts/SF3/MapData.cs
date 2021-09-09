@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using TMPro;
 using UnityEngine;
 
 namespace Shiningforce
@@ -44,6 +45,8 @@ namespace Shiningforce
         int _textureAnimationsMemory;
         List<TextureAnimation> _textureAnimations = new List<TextureAnimation>();
 
+        GameObject _debugTxtPrefab = null;
+
         class MapObjectHeader
         {
             public List<int> Pointers = new List<int>();
@@ -51,6 +54,8 @@ namespace Shiningforce
             public Vector3 Position;
             public Vector3 EulerAngles;
             public Vector3 Scale;
+
+            public int Attribute;
         }
 
         class TextureAnimation
@@ -105,7 +110,6 @@ namespace Shiningforce
             ReadMapTextures();
             ReadMapTextureAnimations();
             ReadMapObjects();
-
             ReadSurfaceTiles();
 
             return true;
@@ -139,6 +143,8 @@ namespace Shiningforce
             int readPointer = _surfaceDataPointer;
             int sizeTileData = 64 * 64 * 2;
             int normalReadPointer = _surfaceDataPointer + sizeTileData;
+            int sizeNormalData = 16 * 16 * 25 * 6;
+            int byteStructureReadPointer = normalReadPointer + sizeNormalData;
 
             // 16x16 blocks a 5x5 tiles or structures
             List<Vector3> vertexNormals = new List<Vector3>();
@@ -151,16 +157,16 @@ namespace Shiningforce
                     {
                         for (int tileX = 0; tileX < 5; tileX++)
                         {
-                            short a = (short)_memory.GetInt16(normalReadPointer);
-                            short b = (short)_memory.GetInt16(normalReadPointer + 2);
-                            short c = (short)_memory.GetInt16(normalReadPointer + 4);
-                            float x = a / (float)0x100;
-                            float y = b / (float)0x100;
-                            float z = c / (float)0x100;
+                            //short a = (short)_memory.GetInt16(normalReadPointer);
+                            //short b = (short)_memory.GetInt16(normalReadPointer + 2);
+                            //short c = (short)_memory.GetInt16(normalReadPointer + 4);
+                            //float x = a / (float)0x100;
+                            //float y = b / (float)0x100;
+                            //float z = c / (float)0x100;
 
-                            //float x = _memory.GetFloat16(normalReadPointer);
-                            //float y = _memory.GetFloat16(normalReadPointer + 2);
-                            //float z = _memory.GetFloat16(normalReadPointer + 4);
+                            float x = _memory.GetFloat16(normalReadPointer);
+                            float y = _memory.GetFloat16(normalReadPointer + 2);
+                            float z = _memory.GetFloat16(normalReadPointer + 4);
 
                             //Debug.Log(a.ToString("X4") + " " + b.ToString("X4") + " " + c.ToString("X4"));
                             //Debug.Log(a + " " + b + " " + c);
@@ -168,6 +174,11 @@ namespace Shiningforce
                             Vector3 normal = new Vector3(x, y, z);
                             vertexNormals.Add(normal);
                             normalReadPointer += 6;
+
+                            // unknown byte value
+                            int value = _memory.GetByte(byteStructureReadPointer);
+                            byteStructureReadPointer++;
+                            //Debug.Log(value.ToString("X2"));
                         }
                     }
                 }
@@ -302,44 +313,6 @@ namespace Shiningforce
             }
 
             _modelTexture.ApplyTexture();
-
-            // 16x16 blocks a 5x5 tiles or structures
-            for (int blockY = 0; blockY < 16; blockY++)
-            {
-                for (int blockX = 0; blockX < 16; blockX++)
-                {
-                    for (int tileY = 0; tileY < 5; tileY++)
-                    {
-                        for (int tileX = 0; tileX < 5; tileX++)
-                        {
-                            int a = _memory.GetInt16(readPointer);
-                            int b = _memory.GetInt16(readPointer + 2);
-                            int c = _memory.GetInt16(readPointer + 4);
-                            //Debug.Log(a.ToString("X4") + " " + b.ToString("X4") + " " + c.ToString("X4"));
-
-                            readPointer += 6;
-                        }
-                    }
-                }
-            }
-
-            //// 16x16 blocks a 5x5 tiles or structures
-            //for (int blockY = 0; blockY < 16; blockY++)
-            //{
-            //    for (int blockX = 0; blockX < 16; blockX++)
-            //        {
-            //        for (int tileY = 0; tileY < 5; tileY++)
-            //        {
-            //            for (int tileX = 0; tileX < 5; tileX++)
-            //            {
-            //                int value = _memory.GetByte(readPointer);
-            //                //Debug.Log(value.ToString("X02"));
-
-            //                readPointer++;
-            //            }
-            //        }
-            //    }
-            //}
         }
 
         void ReadElementOffsets()
@@ -373,10 +346,10 @@ namespace Shiningforce
         {
             int mapPointer = _mapObjectOffset;
 
-            //block.addProperty("header_pointer1", new Pointer(stream, relativeOffset));
-            //block.addProperty("header_pointer2", new Pointer(stream, relativeOffset));
-            //block.addProperty("numObjects", new HexValue(stream.readShort()));
-            //block.addProperty("header_zero", new HexValue(stream.readShort()));
+            int pointer1 = CorrectMapObjectPointer(_memory.GetInt32(_mapObjectOffset));
+            int pointer2 = CorrectMapObjectPointer(_memory.GetInt32(_mapObjectOffset + 4));
+            Debug.Log("pointer1: " + pointer1.ToString("X6"));
+            Debug.Log("pointer2: " + pointer2.ToString("X6"));
 
             int numObjects = _memory.GetInt16(_mapObjectOffset + 0x08);
 
@@ -414,7 +387,9 @@ namespace Shiningforce
                 header.Scale = new Vector3(x, y, z);
                 readPointer += 12;
 
-                // padding
+                int attribute = _memory.GetInt32(readPointer);
+                header.Attribute = attribute;
+                Debug.Log("attribute " + attribute.ToString("X8"));
                 readPointer += 4;
 
                 _mapObjects.Add(header);
@@ -424,6 +399,7 @@ namespace Shiningforce
                 //Debug.Log("scl: " + header.Scale);
 
                 int xpDataPointer = CorrectMapObjectPointer(header.Pointers[0]);
+                Debug.Log("xpData: " + xpDataPointer.ToString("X6"));
                 ImportMeshFromOffset(xpDataPointer);
             }
 
@@ -777,6 +753,16 @@ namespace Shiningforce
                                               Quaternion.AngleAxis(objectHeader.EulerAngles.y, Vector3.up) *
                                               Quaternion.AngleAxis(objectHeader.EulerAngles.x, Vector3.right);
                         partPivot.transform.rotation = rotation;
+
+                        if ((objectHeader.Attribute & 0x000000008) != 0)
+                        {
+                            partPivot.AddComponent<RotateTowardsCamera>();
+                        }
+
+                        if (objectHeader.Attribute != 0)
+                        {
+                            CreateDebugText(partPivot, partPivot.transform.position, objectHeader.Attribute.ToString("X8"));
+                        }
                     }
                     else if (partIndex == _surfacePartIndex)
                     {
@@ -1040,5 +1026,27 @@ namespace Shiningforce
                 animation.Material.SetTextureOffset("_MainTex", new Vector2(offset, 0f));
             }
         }
+
+        public Transform CreateDebugText(GameObject root, Vector3 position, string text)
+        {
+            if (_debugTxtPrefab == null)
+            {
+                // load ui prefab
+                _debugTxtPrefab = Resources.Load<GameObject>("Prefabs/DebugText");
+            }
+
+            GameObject textObject = GameObject.Instantiate<GameObject>(_debugTxtPrefab);
+            textObject.transform.SetParent(root.transform);
+
+            TextMeshPro textMesh = textObject.GetComponentInChildren<TextMeshPro>();
+            textMesh.text = text;
+
+            position.y += -50f;
+            textObject.transform.position = position;
+            textObject.transform.localScale = new Vector3(5f, -5f, 5f);
+
+            return textObject.transform;
+        }
+
     }
 }
