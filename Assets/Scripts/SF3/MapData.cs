@@ -33,6 +33,7 @@ namespace Shiningforce
         int _textureAnimationDataPointer;
 
         List<int> _textureGroupOffsets = new List<int>();
+        List<int> _planeOffsets = new List<int>();
 
         ModelData _model;
         ModelTexture _modelTexture;
@@ -46,6 +47,11 @@ namespace Shiningforce
         List<TextureAnimation> _textureAnimations = new List<TextureAnimation>();
 
         GameObject _debugTxtPrefab = null;
+
+        int _offsetPalette1;
+        int _offsetPalette2;
+        int _sizePalette1;
+        int _sizePalette2;
 
         class MapObjectHeader
         {
@@ -138,7 +144,7 @@ namespace Shiningforce
             _model.Parts.Add(part);
 
             byte[] heightData = Decompression.DecompressData(_memory.Data, _surfaceHeightsPointer - _memory.Base);
-            Debug.Log("heightData size: " + heightData.Length);
+            //Debug.Log("heightData size: " + heightData.Length);
 
             int readPointer = _surfaceDataPointer;
             int sizeTileData = 64 * 64 * 2;
@@ -340,6 +346,25 @@ namespace Shiningforce
 
                 //Debug.Log("texture group: " + textureGroup.ToString("X6"));
             }
+
+            // planes
+            bool readPlanes = true;
+            int readPointer = MEMORY_TEXTUREGROUPS_POINTER + (8 * 8);
+            while (readPlanes)
+            {
+                int planeOffset = _memory.GetInt32(readPointer);
+                if (planeOffset == 0)
+                {
+                    readPlanes = false;
+                }
+                else
+                {
+                    _planeOffsets.Add(planeOffset);
+                    Debug.Log("plane offfset: " + planeOffset.ToString("X6"));
+
+                    readPointer += 8;
+                }
+            }
         }
 
         void ReadMapObjects()
@@ -348,8 +373,8 @@ namespace Shiningforce
 
             int pointer1 = CorrectMapObjectPointer(_memory.GetInt32(_mapObjectOffset));
             int pointer2 = CorrectMapObjectPointer(_memory.GetInt32(_mapObjectOffset + 4));
-            Debug.Log("pointer1: " + pointer1.ToString("X6"));
-            Debug.Log("pointer2: " + pointer2.ToString("X6"));
+            //Debug.Log("pointer1: " + pointer1.ToString("X6"));
+            //Debug.Log("pointer2: " + pointer2.ToString("X6"));
 
             int numObjects = _memory.GetInt16(_mapObjectOffset + 0x08);
 
@@ -389,7 +414,7 @@ namespace Shiningforce
 
                 int attribute = _memory.GetInt32(readPointer);
                 header.Attribute = attribute;
-                Debug.Log("attribute " + attribute.ToString("X8"));
+                //Debug.Log("attribute " + attribute.ToString("X8"));
                 readPointer += 4;
 
                 _mapObjects.Add(header);
@@ -399,7 +424,7 @@ namespace Shiningforce
                 //Debug.Log("scl: " + header.Scale);
 
                 int xpDataPointer = CorrectMapObjectPointer(header.Pointers[0]);
-                Debug.Log("xpData: " + xpDataPointer.ToString("X6"));
+                //Debug.Log("xpData: " + xpDataPointer.ToString("X6"));
                 ImportMeshFromOffset(xpDataPointer);
             }
 
@@ -906,6 +931,31 @@ namespace Shiningforce
             int offset4 = _memory.GetInt32(headerPointer + 0x14);
             _textureAnimationsMemory = _memory.GetInt32(headerPointer + 0x18);
 
+            int offset6 = _memory.GetInt32(headerPointer + 0x1c);
+            int offset7 = _memory.GetInt32(headerPointer + 0x20);
+            int offsetObject1 = _memory.GetInt32(headerPointer + 0x24);
+            int offsetObject2 = _memory.GetInt32(headerPointer + 0x28);
+            int offsetObject3 = _memory.GetInt32(headerPointer + 0x2c);
+            int value3 = _memory.GetInt32(headerPointer + 0x30);
+            int value4 = _memory.GetInt32(headerPointer + 0x34);
+            int textureAnimAlternativeOffset = _memory.GetInt32(headerPointer + 0x38);
+
+            _offsetPalette1 = _memory.GetInt32(headerPointer + 0x3c);
+            _offsetPalette2 = _memory.GetInt32(headerPointer + 0x40);
+            _sizePalette1 = _offsetPalette2 - _offsetPalette1;
+            _sizePalette2 = headerPointer - _offsetPalette2;
+            Debug.Log("pal1: " + _offsetPalette1.ToString("X6") + " size: " + _sizePalette1.ToString("X6"));
+            Debug.Log("pal2: " + _offsetPalette2.ToString("X6") + " size: " + _sizePalette2.ToString("X6"));
+
+            int scrollPlaneX = _memory.GetInt16(headerPointer + 0x44);
+            int scrollPlaneY = _memory.GetInt16(headerPointer + 0x46);
+            int scrollPlaneZ = _memory.GetInt16(headerPointer + 0x48);
+            int unknownAngle = _memory.GetInt16(headerPointer + 0x4a);
+
+            int value5 = _memory.GetInt32(headerPointer + 0x4c);
+            int value6 = _memory.GetInt32(headerPointer + 0x50);
+            int value7 = _memory.GetInt32(headerPointer + 0x54);
+
             //Debug.Log("texture animations: " + _textureAnimationsMemory.ToString("X6"));
         }
 
@@ -1048,5 +1098,33 @@ namespace Shiningforce
             return textObject.transform;
         }
 
+        private void ReadScrollPlanes()
+        {
+            List<Color> palette1 = ReadPalette(_offsetPalette1, _sizePalette1);
+            List<Color> palette2 = ReadPalette(_offsetPalette2, _sizePalette2);
+
+        }
+
+        protected List<Color> ReadPalette(int readPointer, int size)
+        {
+            List<Color> palette = new List<Color>();
+
+            if (_memory.IsAddressValid(readPointer) == false)
+            {
+                return palette;
+            }
+
+            int numColors = size / 2;
+
+            for (int count = 0; count < numColors; count++)
+            {
+                int value = _memory.GetInt16(readPointer);
+                Color rgbColor = ColorHelper.Convert(value);
+                palette.Add(rgbColor);
+                readPointer += 2;
+            }
+
+            return palette;
+        }
     }
 }
