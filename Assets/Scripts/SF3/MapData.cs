@@ -33,12 +33,13 @@ namespace Shiningforce
         int _textureAnimationDataPointer;
 
         List<int> _textureGroupOffsets = new List<int>();
-        List<int> _planeOffsets = new List<int>();
+        List<PlaneData> _planeData = new List<PlaneData>();
 
         ModelData _model;
         ModelTexture _modelTexture;
 
         int _surfacePartIndex = -1;
+        int _cellSurfacePartIndex = -1;
 
         List<MapObjectHeader> _mapObjects = new List<MapObjectHeader>();
         List<Texture2D> _mapTextures = new List<Texture2D>();
@@ -46,12 +47,24 @@ namespace Shiningforce
         int _textureAnimationsMemory;
         List<TextureAnimation> _textureAnimations = new List<TextureAnimation>();
 
+        List<Color[]> _cells = new List<Color[]>();
+
         GameObject _debugTxtPrefab = null;
 
         int _offsetPalette1;
         int _offsetPalette2;
         int _sizePalette1;
         int _sizePalette2;
+
+        short _scrollPlaneX;
+        short _scrollPlaneY;
+        short _scrollPlaneZ;
+
+        class PlaneData
+        {
+            public int Pointer;
+            public int Size;
+        }
 
         class MapObjectHeader
         {
@@ -102,8 +115,8 @@ namespace Shiningforce
             _model.Init();
 
             _modelTexture = new ModelTexture();
-            int textureWidth = 512;
-            int textureHeight = 512;
+            int textureWidth = 4096;
+            int textureHeight = 4096;
             _modelTexture.Init(false, textureWidth, textureHeight);
             _model.ModelTexture = _modelTexture;
 
@@ -118,6 +131,7 @@ namespace Shiningforce
             ReadMapObjects();
             ReadSurfaceTiles();
 
+            ReadScrollPlanes();
             return true;
         }
 
@@ -154,7 +168,7 @@ namespace Shiningforce
 
             // 16x16 blocks a 5x5 tiles or structures
             List<Vector3> vertexNormals = new List<Vector3>();
-            
+
             for (int blockY = 0; blockY < 16; blockY++)
             {
                 for (int blockX = 0; blockX < 16; blockX++)
@@ -352,15 +366,20 @@ namespace Shiningforce
             int readPointer = MEMORY_TEXTUREGROUPS_POINTER + (8 * 8);
             while (readPlanes)
             {
-                int planeOffset = _memory.GetInt32(readPointer);
-                if (planeOffset == 0)
+                int planePointer = _memory.GetInt32(readPointer);
+                if (planePointer == 0)
                 {
                     readPlanes = false;
                 }
                 else
                 {
-                    _planeOffsets.Add(planeOffset);
-                    Debug.Log("plane offfset: " + planeOffset.ToString("X6"));
+                    int planeSize = _memory.GetInt32(readPointer + 4);
+
+                    PlaneData planeData = new PlaneData();
+                    planeData.Pointer = planePointer;
+                    planeData.Size = planeSize;
+                    _planeData.Add(planeData);
+                    //Debug.Log("plane offfset: " + planeData.Pointer.ToString("X6"));
 
                     readPointer += 8;
                 }
@@ -477,7 +496,7 @@ namespace Shiningforce
                 float nX, nY, nZ;
                 nX = _memory.GetFloat(polygonOffset);
                 nY = _memory.GetFloat(polygonOffset + 4);
-                nZ = _memory.GetFloat(polygonOffset  + 8);
+                nZ = _memory.GetFloat(polygonOffset + 8);
                 Vector3 faceNormal = new Vector3(nX, nY, nZ);
                 //Debug.Log(faceNormal);
 
@@ -537,7 +556,7 @@ namespace Shiningforce
                 uvD = Vector2.zero;
 
                 Color rgbColor = ColorHelper.Convert(colno);
-                rgbColor = Color.white;
+                //rgbColor = Color.white;
 
                 TextureAnimation textureAnimation = GetTextureAnimationByGroupId(texno);
                 int animationGroupId = -1;
@@ -562,11 +581,29 @@ namespace Shiningforce
                     else
                     {
                         // get uv based on texture animation sheet
-                        _modelTexture.GetSheetUv(textureAnimation.Texture, textureAnimation.Width, textureAnimation.Height, 
+                        _modelTexture.GetSheetUv(textureAnimation.Texture, textureAnimation.Width, textureAnimation.Height,
                                                  hflip, vflip, out uvA, out uvB, out uvC, out uvD);
 
                         animationGroupId = textureAnimation.Group;
                     }
+                }
+                else
+                {
+                    // no texture, just color => create colored texture
+                    //
+                    Texture2D colorTex = new Texture2D(2, 2);
+                    Color[] colors = new Color[4];
+                    colors[0] = rgbColor;
+                    colors[1] = rgbColor;
+                    colors[2] = rgbColor;
+                    colors[3] = rgbColor;
+                    colorTex.SetPixels(colors);
+                    colorTex.Apply();
+
+                    _modelTexture.AddTexture(colorTex, true, false);
+                    _modelTexture.AddUv(colorTex, hflip, vflip, out uvA, out uvB, out uvC, out uvD);
+
+                    rgbColor = Color.white;
                 }
 
                 Vector3 vA, vB, vC, vD;
@@ -604,6 +641,8 @@ namespace Shiningforce
             {
                 root = parent;
             }
+
+            _model.ModelTexture.Texture.filterMode = FilterMode.Point;
 
             float brightness = 1f;
             Color albedo = new Color(brightness, brightness, brightness, 1.0f);
@@ -784,15 +823,20 @@ namespace Shiningforce
                             partPivot.AddComponent<RotateTowardsCamera>();
                         }
 
-                        if (objectHeader.Attribute != 0)
-                        {
-                            CreateDebugText(partPivot, partPivot.transform.position, objectHeader.Attribute.ToString("X8"));
-                        }
+                        //if (objectHeader.Attribute != 0)
+                        //{
+                        //    CreateDebugText(partPivot, partPivot.transform.position, objectHeader.Attribute.ToString("X8"));
+                        //}
                     }
                     else if (partIndex == _surfacePartIndex)
                     {
                         partPivot.transform.localPosition = new Vector3(0f, -512f, 0f);
                         partPivot.transform.localScale = new Vector3(-1f, 1f, -1f);
+                    }
+                    else if (partIndex == _cellSurfacePartIndex)
+                    {
+                        partPivot.transform.localPosition = new Vector3(-_scrollPlaneX, _scrollPlaneY + 0.01f,  -2048f - _scrollPlaneZ);
+                        partPivot.transform.localScale = new Vector3(-1f, 1f, 1f);
                     }
                 }
             }
@@ -947,14 +991,21 @@ namespace Shiningforce
             Debug.Log("pal1: " + _offsetPalette1.ToString("X6") + " size: " + _sizePalette1.ToString("X6"));
             Debug.Log("pal2: " + _offsetPalette2.ToString("X6") + " size: " + _sizePalette2.ToString("X6"));
 
-            int scrollPlaneX = _memory.GetInt16(headerPointer + 0x44);
-            int scrollPlaneY = _memory.GetInt16(headerPointer + 0x46);
-            int scrollPlaneZ = _memory.GetInt16(headerPointer + 0x48);
-            int unknownAngle = _memory.GetInt16(headerPointer + 0x4a);
+            _scrollPlaneX = (short)_memory.GetInt16(headerPointer + 0x44);
+            _scrollPlaneY = (short)_memory.GetInt16(headerPointer + 0x46);
+            _scrollPlaneZ = (short)_memory.GetInt16(headerPointer + 0x48);
+            short unknownAngle = (short)_memory.GetInt16(headerPointer + 0x4a);
+            Debug.Log("sx: " + _scrollPlaneX);
+            Debug.Log("sy: " + _scrollPlaneY);
+            Debug.Log("sz: " + _scrollPlaneZ);
+            Debug.Log("unknownAngle: " + unknownAngle.ToString("X4"));
 
             int value5 = _memory.GetInt32(headerPointer + 0x4c);
             int value6 = _memory.GetInt32(headerPointer + 0x50);
             int value7 = _memory.GetInt32(headerPointer + 0x54);
+            Debug.Log("v5: " + value5.ToString("X8"));
+            Debug.Log("v6: " + value6.ToString("X8"));
+            Debug.Log("v7: " + value7.ToString("X8"));
 
             //Debug.Log("texture animations: " + _textureAnimationsMemory.ToString("X6"));
         }
@@ -1103,6 +1154,62 @@ namespace Shiningforce
             List<Color> palette1 = ReadPalette(_offsetPalette1, _sizePalette1);
             List<Color> palette2 = ReadPalette(_offsetPalette2, _sizePalette2);
 
+            // create modelpart for cell surface
+            ModelPart part = new ModelPart();
+            part.Init();
+            _cellSurfacePartIndex = _model.Parts.Count;
+            _model.Parts.Add(part);
+
+            for (int count = 0; count < _planeData.Count; count++)
+            {
+                Debug.Log("Plane" + count + ": " + _planeData[count].Pointer.ToString("X6") + " size: " + _planeData[count].Size);
+
+                if (_planeData[count].Size != 0)
+                {
+                    int planePointer = _planeData[count].Pointer;
+                    byte[] planeData = Decompression.DecompressData(_memory.Data, planePointer - _memory.Base);
+                    Debug.Log("  -> Decompressed size: " + planeData.Length.ToString("X6"));
+
+                    Texture2D texture = null;
+
+                    List<Color> palette = palette1;
+                    //if (count < 2)
+                    //{
+                    //    palette = palette1;
+                    //}
+                    //else
+                    //{
+                    //    palette = palette2;
+                    //}
+                    //Texture2D texture = CreatePalettizedTextureFromMemory(planeData, 512, 128, palette);
+
+                    if (_planeData[0].Size != 0 && _planeData[2].Size != 0 && _planeData[5].Size != 0)
+                    {
+                        if (count == 0)
+                        {
+                            texture = ReadCellData(planeData, 512, 128, palette);
+                        }
+                        else if (count == 1)
+                        {
+                            texture = ReadCellData(planeData, 512, 128, palette);
+                        }
+                        else if (count == 2)
+                        {
+                            ReadCellPages(part, planeData, 0);
+                        }
+                        else if (count == 5)
+                        {
+                            ReadCellPages(part, planeData, 8);
+                        }
+                    }
+
+                    if (texture != null)
+                    {
+                        byte[] bytes = texture.EncodeToPNG();
+                        File.WriteAllBytes(Directory.GetCurrentDirectory() + "/textures/plane" + count + ".png", bytes);
+                    }
+                }
+            }
         }
 
         protected List<Color> ReadPalette(int readPointer, int size)
@@ -1125,6 +1232,160 @@ namespace Shiningforce
             }
 
             return palette;
+        }
+
+        Texture2D CreatePalettizedTextureFromMemory(byte[] data, int width, int height, List<Color> palette)
+        {
+            Texture2D texture = new Texture2D(width, height);
+
+            int offset = 0;
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    Color color = palette[data[offset]];
+                    texture.SetPixel(x, y, color);
+
+                    offset++;
+                }
+            }
+
+            texture.Apply();
+
+            return texture;
+        }
+
+        Texture2D ReadCellData(byte[] data, int width, int height, List<Color> palette)
+        {
+            Texture2D texture = new Texture2D(width, height);
+
+            const int cellWidth = 8;
+            const int cellHeight = 8;
+
+            const int numCells = 0x400;
+            int cellsPerRow = width / 8;
+
+            int offset = 0;
+
+            for (int cellCount = 0; cellCount < numCells; cellCount++)
+            {
+                Color[] cell = new Color[cellWidth * cellHeight];
+
+                for (int y = 0; y < cellHeight; y++)
+                {
+                    for (int x = 0; x < cellWidth; x++)
+                    {
+                        Color color = palette[data[offset]];
+                        texture.SetPixel(((cellCount % cellsPerRow) * cellWidth) + x,
+                                         ((cellCount / cellsPerRow) * cellHeight) + y,
+                                         color);
+
+                        // test!! transparent cell0
+                        //if (cellCount == 0)
+                        //{
+                        //    color.a = 0f;
+                        //}
+
+                        cell[(y * cellWidth) + x] = color;
+
+                        offset++;
+                    }
+                }
+
+                _cells.Add(cell);
+            }
+
+            texture.Apply();
+
+            return texture;
+        }
+
+        void ReadCellPages(ModelPart part, byte[] data, int pageOffset = 0)
+        {
+            int offset = 0;
+
+            for (int pageCount = 0; pageCount < 8; pageCount++)
+            {
+                Texture2D pageTexture = new Texture2D(512, 512);
+
+                for (int y = 0; y < 64; y++)
+                {
+                    for (int x = 0; x < 64; x++)
+                    {
+                        int patternName = ByteArray.GetInt16(data, offset);
+
+                        int cellIndex = (patternName >> 1) & 0x7ff;
+
+                        for (int cellY = 0; cellY < 8; cellY++)
+                        {
+                            for (int cellX = 0; cellX < 8; cellX++)
+                            {
+                                pageTexture.SetPixel((x * 8) + cellX, (y * 8) + cellY, _cells[cellIndex][(cellY * 8) + cellX]);
+                            }
+                        }
+
+                        offset += 2;
+                    }
+                }
+
+                pageTexture.Apply();
+
+                // add polygon to part
+                bool transparent = false;
+                bool halftransparent = false;
+                bool hflip = false;
+                bool vflip = false;
+                bool doubleSided = false;
+                Color rgbColor = Color.white;
+                Vector3 faceNormal = new Vector3(0f, 1f, 0f);
+
+                Vector2 uvA, uvB, uvC, uvD;
+                uvA = Vector2.zero;
+                uvB = Vector2.zero;
+                uvC = Vector2.zero;
+                uvD = Vector2.zero;
+
+                int animationGroupId = -1;
+
+                // textured polygon
+                rgbColor = Color.white;
+
+                // add texture to atlas
+                if (_modelTexture.ContainsTexture(pageTexture) == false)
+                {
+                    _modelTexture.AddTexture(pageTexture, transparent, halftransparent);
+                }
+
+                _modelTexture.AddUv(pageTexture, hflip, vflip, out uvA, out uvB, out uvC, out uvD); // add texture uv
+
+                const float tileSize = 64 * 8f;
+
+                int tileX = pageCount % 4;
+                int tileY = (pageCount + pageOffset) / 4;
+
+                Vector3 vA, vB, vC, vD;
+                vA = new Vector3(tileX * tileSize, 0f, tileY * tileSize);
+                vB = vA;
+                vB.x += tileSize;
+                vC = vB;
+                vC.z += tileSize;
+                vD = vA;
+                vD.z += tileSize;
+
+                int subDivide = 1;
+
+                part.AddPolygon(vA, vB, vC, vD,
+                                halftransparent, doubleSided,
+                                rgbColor, rgbColor, rgbColor, rgbColor,
+                                uvA, uvB, uvC, uvD,
+                                faceNormal, faceNormal, faceNormal, faceNormal, subDivide, true, animationGroupId);
+
+                //byte[] bytes = pageTexture.EncodeToPNG();
+                //File.WriteAllBytes(Directory.GetCurrentDirectory() + "/textures/page" + pageCount + ".png", bytes);
+            }
+
+            _modelTexture.ApplyTexture();
         }
     }
 }

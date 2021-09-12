@@ -60,8 +60,10 @@ namespace Shiningforce
 
             _mapFiles = Directory.GetFiles(_imagePath, "*.mpd", SearchOption.AllDirectories);
 
-            _mapCount = GetMapIndex("BTL02");
+            //_mapCount = GetMapIndex("BTL02");
             //_mapCount = GetMapIndex("SARA02");
+            _mapCount = GetMapIndex("S_RM01");
+            //_mapCount = GetMapIndex("S_RM04");
             CreateMap(_mapCount);
 
             // map test
