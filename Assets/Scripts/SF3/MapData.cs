@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using TMPro;
 using UnityEngine;
+using Util;
 
 namespace Shiningforce
 {
@@ -30,6 +31,7 @@ namespace Shiningforce
         int _surfaceDataPointer;
         int _surfaceDataSize;
         int _surfaceHeightsPointer;
+        int _surfaceHeightsSize;
         int _textureAnimationDataPointer;
 
         List<int> _textureGroupOffsets = new List<int>();
@@ -59,6 +61,8 @@ namespace Shiningforce
         short _scrollPlaneX;
         short _scrollPlaneY;
         short _scrollPlaneZ;
+
+        byte[] _heightData;
 
         class PlaneData
         {
@@ -107,7 +111,7 @@ namespace Shiningforce
             }
 
             // extract name from path
-            _name = Util.FileSystemHelper.GetFileNameWithoutExtensionFromPath(filePath);
+            _name = FileSystemHelper.GetFileNameWithoutExtensionFromPath(filePath);
             Debug.Log("Map: " + _name);
 
             // prepare model and texture for map object
@@ -130,7 +134,6 @@ namespace Shiningforce
             ReadMapTextureAnimations();
             ReadMapObjects();
             ReadSurfaceTiles();
-
             ReadScrollPlanes();
             return true;
         }
@@ -145,6 +148,16 @@ namespace Shiningforce
 
         void ReadSurfaceTiles()
         {
+            _heightData = null;
+
+            if (_surfaceHeightsSize > 0)
+            {
+                _heightData = Decompression.DecompressData(_memory.Data, _surfaceHeightsPointer - _memory.Base);
+                Debug.Log("heightData size: " + _heightData.Length.ToString("X6"));
+
+                //DebugHeightMap(heightData);
+            }
+
             if (_surfaceDataSize == 0)
             {
                 Debug.Log("No surface tiles on this map!");
@@ -156,9 +169,6 @@ namespace Shiningforce
             part.Init();
             _surfacePartIndex = _model.Parts.Count;
             _model.Parts.Add(part);
-
-            byte[] heightData = Decompression.DecompressData(_memory.Data, _surfaceHeightsPointer - _memory.Base);
-            //Debug.Log("heightData size: " + heightData.Length);
 
             int readPointer = _surfaceDataPointer;
             int sizeTileData = 64 * 64 * 2;
@@ -217,12 +227,12 @@ namespace Shiningforce
                             int tileY = blockY * 4 + innerY;
 
                             int heightDataOffset = ((tileY * 64) + tileX) * 4;
-                            int heightA = (0x100 - heightData[heightDataOffset + 1]) * 2;
-                            int heightB = (0x100 - heightData[heightDataOffset]) * 2;
-                            int heightC = (0x100 - heightData[heightDataOffset + 3]) * 2;
-                            int heightD = (0x100 - heightData[heightDataOffset + 2]) * 2;
-                            //Debug.Log(heightA.ToString("X2") + " " + heightB.ToString("X2") + " " + 
-                            //          heightC.ToString("X2") + " " + heightD.ToString("X2"));
+                            int heightA = (0x100 - _heightData[heightDataOffset + 1]) * 2;
+                            int heightB = (0x100 - _heightData[heightDataOffset]) * 2;
+                            int heightC = (0x100 - _heightData[heightDataOffset + 3]) * 2;
+                            int heightD = (0x100 - _heightData[heightDataOffset + 2]) * 2;
+                            Debug.Log(heightA.ToString("X2") + " " + heightB.ToString("X2") + " " +
+                                      heightC.ToString("X2") + " " + heightD.ToString("X2"));
 
                             int normalIndex1 = GetNormalIndexByBlockAndInner(blockX, blockY, innerX, innerY);
                             int normalIndex2 = GetNormalIndexByBlockAndInner(blockX, blockY, innerX + 1, innerY);
@@ -345,6 +355,7 @@ namespace Shiningforce
             _surfaceDataPointer = _memory.GetInt32(MEMORY_SURFACE_DATA_POINTER);
             _surfaceDataSize = _memory.GetInt32(MEMORY_SURFACE_DATA_POINTER + 4);
             _surfaceHeightsPointer = _memory.GetInt32(MEMORY_SURFACE_HEIGHTS_POINTER);
+            _surfaceHeightsSize = _memory.GetInt32(MEMORY_SURFACE_HEIGHTS_POINTER + 4);
             _textureAnimationDataPointer = _memory.GetInt32(MEMORY_TEXTURE_ANIMATION_DATA_POINTER);
 
             //Debug.Log(_mapObjectOffset.ToString("X6"));
@@ -444,7 +455,14 @@ namespace Shiningforce
 
                 int xpDataPointer = CorrectMapObjectPointer(header.Pointers[0]);
                 //Debug.Log("xpData: " + xpDataPointer.ToString("X6"));
-                ImportMeshFromOffset(xpDataPointer);
+                bool debugOutput = false;
+
+                //if (objCount == 158)
+                //{
+                //    debugOutput = true;
+                //}
+
+                ImportMeshFromOffset(xpDataPointer, debugOutput);
             }
 
             _model.ModelTexture.ApplyTexture();
@@ -460,7 +478,7 @@ namespace Shiningforce
             return pointer;
         }
 
-        void ImportMeshFromOffset(int offset)
+        void ImportMeshFromOffset(int offset, bool debugOutput = false)
         {
             ModelPart part = new ModelPart();
             part.Init();
@@ -471,11 +489,14 @@ namespace Shiningforce
             int numPolygons = _memory.GetInt32(offset + 0x0c);
             int polygonAttributesOffset = CorrectMapObjectPointer(_memory.GetInt32(offset + 0x10));
 
-            //Debug.Log("Points offset: " + pointsOffset.ToString("X6"));
-            //Debug.Log("Points num: " + numPoints.ToString("X6"));
-            //Debug.Log("Polygon offset: " + polygonOffset.ToString("X6"));
-            //Debug.Log("Polygon num: " + numPolygons.ToString("X6"));
-            //Debug.Log("Attribute offset: " + polygonAttributesOffset.ToString("X6"));
+            if (debugOutput)
+            {
+                Debug.Log("Points offset: " + pointsOffset.ToString("X6"));
+                Debug.Log("Points num: " + numPoints.ToString("X6"));
+                Debug.Log("Polygon offset: " + polygonOffset.ToString("X6"));
+                Debug.Log("Polygon num: " + numPolygons.ToString("X6"));
+                Debug.Log("Attribute offset: " + polygonAttributesOffset.ToString("X6"));
+            }
 
             List<Vector3> points = new List<Vector3>();
             List<Vector3> normals = new List<Vector3>();
@@ -515,6 +536,16 @@ namespace Shiningforce
                 int colno = _memory.GetInt16(polygonAttributesOffset + 6);
                 int gouraudTable = _memory.GetInt16(polygonAttributesOffset + 8);
                 int dir = _memory.GetInt16(polygonAttributesOffset + 10);
+
+                if (debugOutput)
+                {
+                    Debug.Log("flag_sort: " + flag_sort.ToString("X4"));
+                    Debug.Log("texno: " + texno.ToString("X4"));
+                    Debug.Log("attrib: " + attributes.ToString("X4"));
+                    Debug.Log("colno: " + colno.ToString("X4"));
+                    Debug.Log("gouraud: " + gouraudTable.ToString("X4"));
+                    Debug.Log("dir: " + dir.ToString("X4"));
+                }
 
                 polygonAttributesOffset += 12;
 
@@ -564,8 +595,6 @@ namespace Shiningforce
                 if (polyType == 2)
                 {
                     // textured polygon
-                    rgbColor = Color.white;
-
                     if (textureAnimation == null)
                     {
                         // add texture to atlas
@@ -586,6 +615,8 @@ namespace Shiningforce
 
                         animationGroupId = textureAnimation.Group;
                     }
+
+                    rgbColor = Color.white;
                 }
                 else
                 {
@@ -835,7 +866,7 @@ namespace Shiningforce
                     }
                     else if (partIndex == _cellSurfacePartIndex)
                     {
-                        partPivot.transform.localPosition = new Vector3(-_scrollPlaneX, _scrollPlaneY + 0.01f,  -2048f - _scrollPlaneZ);
+                        partPivot.transform.localPosition = new Vector3(-_scrollPlaneX, _scrollPlaneY + 0.01f, -2048f - _scrollPlaneZ);
                         partPivot.transform.localScale = new Vector3(-1f, 1f, 1f);
                     }
                 }
@@ -882,8 +913,11 @@ namespace Shiningforce
                         Texture2D texture = CreateTextureFromMemory(decompressedTextures, textureOffset, width, height);
                         _mapTextures.Add(texture);
 
-                        //byte[] bytes = texture.EncodeToPNG();
-                        //File.WriteAllBytes(Application.streamingAssetsPath + "/textures/" + _name + "_" + (_mapTextures.Count - 1) + ".png", bytes);
+                        // write texture
+                        byte[] bytes = texture.EncodeToPNG();
+                        string path = Directory.GetCurrentDirectory() + "/textures/" + _name + "/";
+                        FileSystemHelper.CreateDirectory(path);
+                        File.WriteAllBytes(path + (_mapTextures.Count - 1) + ".png", bytes);
                     }
                 }
             }
@@ -1287,6 +1321,11 @@ namespace Shiningforce
                         //    color.a = 0f;
                         //}
 
+                        if (color == Color.black)
+                        {
+                            color.a = 0f;
+                        }
+
                         cell[(y * cellWidth) + x] = color;
 
                         offset++;
@@ -1317,11 +1356,34 @@ namespace Shiningforce
 
                         int cellIndex = (patternName >> 1) & 0x7ff;
 
-                        for (int cellY = 0; cellY < 8; cellY++)
+                        //int cellAttrib = patternName & 0xf000;
+                        //if (cellAttrib != 0)
+                        //{
+                        //    Debug.Log("cell attrib: " + cellAttrib.ToString("X4"));
+                        //}
+
+                        int height = GetHeightAtPageCell(x, y, pageCount + pageOffset);
+
+                        if (-height <= _scrollPlaneY)
                         {
-                            for (int cellX = 0; cellX < 8; cellX++)
+                            for (int cellY = 0; cellY < 8; cellY++)
                             {
-                                pageTexture.SetPixel((x * 8) + cellX, (y * 8) + cellY, _cells[cellIndex][(cellY * 8) + cellX]);
+                                for (int cellX = 0; cellX < 8; cellX++)
+                                {
+                                    pageTexture.SetPixel((x * 8) + cellX, (y * 8) + cellY, _cells[cellIndex][(cellY * 8) + cellX]);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Color empty = Color.black;
+                            empty.a = 0f;
+                            for (int cellY = 0; cellY < 8; cellY++)
+                            {
+                                for (int cellX = 0; cellX < 8; cellX++)
+                                {
+                                    pageTexture.SetPixel((x * 8) + cellX, (y * 8) + cellY, empty);
+                                }
                             }
                         }
 
@@ -1338,7 +1400,7 @@ namespace Shiningforce
                 bool vflip = false;
                 bool doubleSided = false;
                 Color rgbColor = Color.white;
-                Vector3 faceNormal = new Vector3(0f, 1f, 0f);
+                Vector3 faceNormal = new Vector3(0f, -1f, 0f);
 
                 Vector2 uvA, uvB, uvC, uvD;
                 uvA = Vector2.zero;
@@ -1347,9 +1409,6 @@ namespace Shiningforce
                 uvD = Vector2.zero;
 
                 int animationGroupId = -1;
-
-                // textured polygon
-                rgbColor = Color.white;
 
                 // add texture to atlas
                 if (_modelTexture.ContainsTexture(pageTexture) == false)
@@ -1386,6 +1445,74 @@ namespace Shiningforce
             }
 
             _modelTexture.ApplyTexture();
+        }
+
+        void DebugHeightMap(byte[] heightData)
+        {
+            File.WriteAllBytes(Directory.GetCurrentDirectory() + "/textures/" + _name + "_heights" + ".bin", heightData);
+
+            Texture2D texture = new Texture2D(64, 64);
+
+            // 16x16 blocks a 4x4 tiles
+            for (int blockY = 0; blockY < 16; blockY++)
+            {
+                for (int blockX = 0; blockX < 16; blockX++)
+                {
+                    for (int innerY = 0; innerY < 4; innerY++)
+                    {
+                        for (int innerX = 0; innerX < 4; innerX++)
+                        {
+                            int tileX = blockX * 4 + innerX;
+                            int tileY = blockY * 4 + innerY;
+
+                            int heightDataOffset = ((tileY * 64) + tileX) * 4;
+                            int heightA = (0x100 - heightData[heightDataOffset + 1]) * 2;
+                            int heightB = (0x100 - heightData[heightDataOffset]) * 2;
+                            int heightC = (0x100 - heightData[heightDataOffset + 3]) * 2;
+                            int heightD = (0x100 - heightData[heightDataOffset + 2]) * 2;
+
+                            //float avgHeight = ((heightA + heightB + heightC + heightD) / 4) / 256f;
+                            float avgHeight = heightData[heightDataOffset] / 256f;
+
+                            Color pixel = new Color(avgHeight, avgHeight, avgHeight);
+                            texture.SetPixel(tileX, tileY, pixel);
+                        }
+                    }
+                }
+            }
+
+            texture.Apply();
+
+            byte[] bytes = texture.EncodeToPNG();
+            File.WriteAllBytes(Directory.GetCurrentDirectory() + "/textures/" + _name + "_heights" + ".png", bytes);
+        }
+
+        int GetTileHeight(int x, int y)
+        {
+            int offset = 0x4000; // offset to single tile heights
+            int height = _heightData[offset + (y * 64 * 2) + (x * 2)];
+            return height  * 2;
+
+            // average
+            //int offset = (y * 64 * 4) + (x * 4);
+            //int height = _heightData[offset] + _heightData[offset + 1] + _heightData[offset + 2] + _heightData[offset + 3];
+            //return (height / 4) * 2;
+        }
+
+        int GetHeightAtPageCell(int x, int y, int page)
+        {
+            int pageX = page % 4;
+            int pageY = page / 4;
+
+            int cellX = (pageX * 64) + x;
+            int cellY = (pageY * 64) + y;
+
+            cellY = 255 - cellY;
+
+            int height = GetTileHeight((cellX + 4) / 4, cellY / 4);
+            //int height = GetTileHeight((cellX + 0) / 4, cellY / 4);
+
+            return height;
         }
     }
 }

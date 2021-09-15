@@ -56,6 +56,11 @@ namespace Shiningforce
                 return;
             }
 
+            // character (sprite) data test
+            //CharacterData chrData = new CharacterData();
+            //chrData.ReadFile(_imagePath + "/CBP00.CHP");
+            //return;
+
             //AudioPlayer.GetInstance().PlayTrack("sf3");
 
             _mapFiles = Directory.GetFiles(_imagePath, "*.mpd", SearchOption.AllDirectories);
@@ -63,6 +68,7 @@ namespace Shiningforce
             //_mapCount = GetMapIndex("BTL02");
             //_mapCount = GetMapIndex("SARA02");
             _mapCount = GetMapIndex("S_RM01");
+            //_mapCount = GetMapIndex("A_RM02");
             //_mapCount = GetMapIndex("S_RM04");
             CreateMap(_mapCount);
 

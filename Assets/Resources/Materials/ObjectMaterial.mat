@@ -66,11 +66,11 @@ Material:
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
-    - _EmissionVC: 0.75
+    - _EmissionVC: 0
     - _GlossMapScale: 1
     - _Glossiness: 0.2
     - _GlossyReflections: 1
-    - _IntensityVC: 2
+    - _IntensityVC: 4
     - _Metallic: 0.1
     - _Mode: 1
     - _OcclusionStrength: 1
