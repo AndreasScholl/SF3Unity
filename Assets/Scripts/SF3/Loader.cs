@@ -32,6 +32,9 @@ namespace Shiningforce
         private Vector3 _camPosOverview = new Vector3(-200f, 150f, -200f);
         private Vector3 _camAngleOverview = new Vector3(40.0f, 40.0f, 0f);
 
+        private Vector3 _camPosRoomTest = new Vector3(-4f, 35f, -147f);
+        private Vector3 _camAngleRoomTest = new Vector3(38.0f, 218.0f, 0f);
+
         private float _cameraTime = 0f;
         public float _cameraStartTime = 5f;
         public float _cameraDuration = 10f;
@@ -74,8 +77,10 @@ namespace Shiningforce
 
             // map test
             Transform camTransform = Camera.main.transform;
-            camTransform.position = _camPosOverview;
-            camTransform.eulerAngles = _camAngleOverview;
+            //camTransform.position = _camPosOverview;
+            //camTransform.eulerAngles = _camAngleOverview;
+            camTransform.position = _camPosRoomTest;
+            camTransform.eulerAngles = _camAngleRoomTest;
 
             // objects (test)
             //Transform camTransform = Camera.main.transform;
