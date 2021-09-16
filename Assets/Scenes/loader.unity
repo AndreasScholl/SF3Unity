@@ -20,9 +20,9 @@ RenderSettings:
   m_FogDensity: 0.01
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
-  m_AmbientSkyColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
-  m_AmbientEquatorColor: {r: 0.3, g: 0.3, b: 0.3, a: 1}
-  m_AmbientGroundColor: {r: 0.15, g: 0.15, b: 0.15, a: 1}
+  m_AmbientSkyColor: {r: 0.75, g: 0.75, b: 0.75, a: 1}
+  m_AmbientEquatorColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  m_AmbientGroundColor: {r: 0.25, g: 0.25, b: 0.25, a: 1}
   m_AmbientIntensity: 1
   m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
@@ -35,10 +35,10 @@ RenderSettings:
   m_DefaultReflectionMode: 0
   m_DefaultReflectionResolution: 128
   m_ReflectionBounces: 1
-  m_ReflectionIntensity: 1
+  m_ReflectionIntensity: 0.25
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.053686816, g: 0.08903931, b: 0.35221034, a: 1}
+  m_IndirectSpecularColor: {r: 0.013421704, g: 0.022259828, b: 0.088052586, a: 0.25}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -352,6 +352,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_MoveRepeatDelay: 0.5
   m_MoveRepeatRate: 0.1
+  m_XRTrackingOrigin: {fileID: 0}
   m_ActionsAsset: {fileID: -944628639613478452, guid: ca9f5fa95ffab41fb9a615ab714db018,
     type: 3}
   m_PointAction: {fileID: 1054132383583890850, guid: ca9f5fa95ffab41fb9a615ab714db018,
@@ -434,7 +435,7 @@ Light:
   m_Type: 1
   m_Shape: 0
   m_Color: {r: 0.9528302, g: 0.9528302, b: 0.9528302, a: 1}
-  m_Intensity: 0.8
+  m_Intensity: 2
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -608,6 +609,7 @@ GameObject:
   - component: {fileID: 1117053835}
   - component: {fileID: 1117053834}
   - component: {fileID: 1117053837}
+  - component: {fileID: 1117053838}
   m_Layer: 11
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -648,7 +650,7 @@ Camera:
     height: 1
   near clip plane: 0.01
   far clip plane: 3000
-  field of view: 45
+  field of view: 25
   orthographic: 0
   orthographic size: 5
   m_Depth: -1
@@ -740,6 +742,33 @@ MonoBehaviour:
   m_BeforeTransparentBundles: []
   m_BeforeStackBundles: []
   m_AfterStackBundles: []
+--- !u!114 &1117053838
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1117053833}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bac8f60d9678a824793d4db0bef8ad34, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _cameraDampTime: 0.25
+  _cameraDistance: 40
+  _cameraHeight: 20
+  _cameraLookAtHeight: 2
+  _fixedPosition: 0
+  _fixedRotation: 0
+  _rotateSpeed: 1
+  _cameraDistanceClosingFactor: 0.1
+  _cameraHeightClosingFactor: 0.05
+  _hitSphereRadius: 0.25
+  _clipAdjustmentDistance: 0.1
+  _minTargetDistance: 0.3
+  _cameraMaxSpeed: 20
+  _targetSpeedFactor: 1.5
+  _viewAngle: 0
 --- !u!1 &1192758431
 GameObject:
   m_ObjectHideFlags: 0

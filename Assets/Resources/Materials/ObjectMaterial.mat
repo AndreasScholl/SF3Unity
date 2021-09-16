@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: ObjectMaterial
-  m_Shader: {fileID: 4800000, guid: 7485f92315a43994ea5b8a5e3f67c843, type: 3}
+  m_Shader: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
   m_ShaderKeywords: _ALPHATEST_ON _VERTEXCOLOR
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0

@@ -914,10 +914,10 @@ namespace Shiningforce
                         _mapTextures.Add(texture);
 
                         // write texture
-                        byte[] bytes = texture.EncodeToPNG();
-                        string path = Directory.GetCurrentDirectory() + "/textures/" + _name + "/";
-                        FileSystemHelper.CreateDirectory(path);
-                        File.WriteAllBytes(path + (_mapTextures.Count - 1) + ".png", bytes);
+                        //byte[] bytes = texture.EncodeToPNG();
+                        //string path = Directory.GetCurrentDirectory() + "/textures/" + _name + "/";
+                        //FileSystemHelper.CreateDirectory(path);
+                        //File.WriteAllBytes(path + (_mapTextures.Count - 1) + ".png", bytes);
                     }
                 }
             }
@@ -1239,8 +1239,8 @@ namespace Shiningforce
 
                     if (texture != null)
                     {
-                        byte[] bytes = texture.EncodeToPNG();
-                        File.WriteAllBytes(Directory.GetCurrentDirectory() + "/textures/plane" + count + ".png", bytes);
+                        //byte[] bytes = texture.EncodeToPNG();
+                        //File.WriteAllBytes(Directory.GetCurrentDirectory() + "/textures/plane" + count + ".png", bytes);
                     }
                 }
             }

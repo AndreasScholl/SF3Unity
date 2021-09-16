@@ -347,6 +347,24 @@ namespace Shiningforce
 
                         _modelTexture.AddUv(texture, hflip, vflip, out uvA, out uvB, out uvC, out uvD); // add texture uv
                     }
+                    else
+                    {
+                        // no texture, just color => create colored texture
+                        //
+                        Texture2D colorTex = new Texture2D(2, 2);
+                        Color[] colors = new Color[4];
+                        colors[0] = rgbColor;
+                        colors[1] = rgbColor;
+                        colors[2] = rgbColor;
+                        colors[3] = rgbColor;
+                        colorTex.SetPixels(colors);
+                        colorTex.Apply();
+
+                        _modelTexture.AddTexture(colorTex, true, false);
+                        _modelTexture.AddUv(colorTex, hflip, vflip, out uvA, out uvB, out uvC, out uvD);
+
+                        rgbColor = Color.white;
+                    }
 
                     Vector3 vA, vB, vC, vD;
                     Vector3 nA, nB, nC, nD;
@@ -788,7 +806,7 @@ namespace Shiningforce
 
             CreateAndApplyHierarchy(root);
 
-            parent.transform.localScale = new Vector3(0.15f, -0.15f, 0.15f);
+            parent.transform.localScale = new Vector3(0.175f, -0.175f, 0.175f);
 
             // dont receive shadows
             Renderer[] renderers = parent.GetComponentsInChildren<Renderer>();

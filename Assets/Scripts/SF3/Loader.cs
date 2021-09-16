@@ -116,9 +116,18 @@ namespace Shiningforce
             //monk4.transform.eulerAngles = new Vector3(0f, 90f, 0f);
             //monk5.transform.eulerAngles = new Vector3(0f, 90f, 0f);
 
-            //GameObject synbios = LoadObject(0);
+            GameObject player = new GameObject("Player");
+            GameObject synbiosModel = LoadObject(0);
+            synbiosModel.transform.parent = player.transform;
+            synbiosModel.transform.eulerAngles = new Vector3(0f, -180f, 0f);
             //synbios.transform.position = new Vector3(-131f, 0f, -111f);
             //synbios.transform.eulerAngles = new Vector3(0f, -90f, 0f);
+            player.transform.position = new Vector3(-16f, 6.4f, -188f);
+            player.transform.eulerAngles = new Vector3(0f, 180f, 0f);
+            Character character = player.AddComponent<Character>();
+
+            CameraControl cameraControl = Camera.main.GetComponent<CameraControl>();
+            cameraControl.SetTarget(character);
 
             //_object = synbios;
             //_objectPos = synbios.transform.position;
