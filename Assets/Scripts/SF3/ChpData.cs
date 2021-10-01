@@ -176,6 +176,7 @@ namespace Shiningforce
             }
             int sheetHeight = rows * height;
             Texture2D texture = new Texture2D(sheetWidth, sheetHeight);
+            texture.filterMode = FilterMode.Point;
 
             for (int sY = 0; sY < rows; sY++)
             {
