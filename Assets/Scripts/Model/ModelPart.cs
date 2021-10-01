@@ -421,19 +421,30 @@ namespace Model
             return copy;
         }
 
-        public void AddCollider()
+        public void AddCollider(int layer)
         {
             if (OpaqueObject != null)
             {
                 if (OpaqueObject.GetComponent<MeshFilter>() != null)
                 {
                     MeshCollider collider = OpaqueObject.AddComponent<MeshCollider>();
+                    OpaqueObject.layer = layer;
                 }
             }
 
             if (TransparentObject != null)
             {
                 MeshCollider collider = TransparentObject.AddComponent<MeshCollider>();
+                TransparentObject.layer = layer;
+            }
+        }
+
+        public void EnableRenderers(bool enable)
+        {
+            Renderer[] renderers = Pivot.GetComponentsInChildren<Renderer>();
+            foreach (Renderer renderer in renderers)
+            {
+                renderer.enabled = enable;
             }
         }
     }

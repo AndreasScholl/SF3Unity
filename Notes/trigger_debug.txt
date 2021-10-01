@@ -1,0 +1,66 @@
+
+060B8000 -> trigger array
+
+060B8F90 -> right part of bookcase (0x81)
+
+Code bei:
+6057448
+
+oberes nibble wird ausgelesen
+
+
+----------------
+Healing drop Analyse:
+
+3F healing drop
+
+Trigger-Table (memory: 0606286c)
+0000003F FFFF0000 0000087A 
+0000003D FFFF0000 0000087B 
+0002000F 02800000 06060958 
+00020002 FFFF0000 0605F054 
+00020003 FFFF0000 0605F080 
+Big door (memory: 60628a8)
+01020006 02010000 0605F0AC 
+01020007 02020000 0605F1B4 
+01020008 02030000 0605F288 
+01020009 02040000 0605F35C 
+0302000A 02050000 0605F428 
+8302000B 02060000 0605F494 
+C302000C 02070000 0605F500 
+4302000D 02080000 0605F56C 
+C302000E 02090000 0605F5D8 
+
+--------------------------------
+Plant: (memory: 6062914)
+
+  SearchType (1 = chest, 2 = vase, 3 = barrel, 4 = wall, 5 = directly ahead, 6 = rock, 7 = hole, ...)
+  |      FLAG     ITEM OR FUNCTION
+0053000F 07020000 01000055 
+   |   |
+   3   F => Trigger # in Map (0x3f)
+   
+8013000E 07030000 01000056 
+000B0801 FFFF0000 0605F644 
+
+Shelf: (memory: 6062938)
+000B0802 FFFF0000 0605F66C 
+000B8803 FFFF0000 0605F698
+ 
+000B480C FFFF0000 0605F6C0 
+00080801 FFFF0000 0605F6EC 
+01010001 FFFF0000 00000001 
+01010002 FFFF0000
+
+
+--------------------------------
+S_RM01
+
+11-23: Map-Transitions
+23-2D- Türen
+31-32 Shop (Theken)
+3E-3F - Objekte (z.B. Schatztruhe, Blumentopf, ...)
+51-5A - Event-Trigger?
+81 Bücherregal
+B2-BC Schränke
+

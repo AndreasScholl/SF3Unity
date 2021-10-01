@@ -58,30 +58,20 @@ public class InputHelper
             inputData.Horizontal = leftStick.x;
             inputData.Vertical = leftStick.y;
 
-            inputData.Button1 = pad.buttonSouth.isPressed;                  // jump
+            inputData.Button1 = pad.buttonSouth.isPressed;
             inputData.Button1Down = pad.buttonSouth.wasPressedThisFrame;
-            if (pad.buttonNorth.isPressed)
-            {
-                inputData.Button1 = true;
-            }
-            if (pad.buttonNorth.wasPressedThisFrame)
-            {
-                inputData.Button1Down = true;
-            }
-            inputData.Button2 = pad.buttonEast.isPressed;                   // fire
+            inputData.Button2 = pad.buttonEast.isPressed;
             inputData.Button2Down = pad.buttonEast.wasPressedThisFrame;
-            if (pad.buttonWest.isPressed)
-            {
-                inputData.Button2 = true;
-            }
-            if (pad.buttonWest.wasPressedThisFrame)
-            {
-                //Debug.Break();
-                inputData.Button2Down = true;
-            }
+            inputData.Button2 = pad.buttonWest.isPressed;
+            inputData.Button2Down = pad.buttonWest.wasPressedThisFrame;
+            inputData.Button4 = pad.buttonNorth.isPressed;
+            inputData.Button4Down = pad.buttonNorth.wasPressedThisFrame;
 
+            inputData.Button5 = pad.leftShoulder.isPressed;
             inputData.Button5Down = pad.leftShoulder.wasPressedThisFrame;   // look left
+            inputData.Button6 = pad.rightShoulder.isPressed;
             inputData.Button6Down = pad.rightShoulder.wasPressedThisFrame;  // look right
+
             Vector2 rightStick = pad.rightStick.ReadValue();                // free rotate camera
             inputData.LookHorizontal = rightStick.x;
             inputData.LookVertical = rightStick.y;

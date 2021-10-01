@@ -67,6 +67,7 @@ namespace Model
             _width = width;
             _height = height;
 
+            //Texture = new Texture2D(_width, _height, TextureFormat.ASTC_4x4, true);
             Texture = new Texture2D(_width, _height);
 
             Color fillColor = new Color(1.0f, 1.0f, 1.0f);
@@ -122,18 +123,10 @@ namespace Model
                     //    pixel.a = 1f;   // remove cutout alpha
                     //}
 
-                    //if (transparent == false)
+                    //if (halftransparent == true)
                     //{
-                    //    if (pixel == Color.black || pixel == Color.white)
-                    //    {
-                    //        pixel.a = 0f;
-                    //    }
+                    //    pixel.a = 0.5f;
                     //}
-
-                    if (halftransparent == true)
-                    {
-                        pixel.a = 0.5f;
-                    }
 
                     Texture.SetPixel(X + xc, Y + yc, pixel);
                 }

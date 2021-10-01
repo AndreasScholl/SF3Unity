@@ -445,6 +445,9 @@ namespace Shiningforce
 
                     Vector3 translation = ByteArray.GetVector3(_data, offset);
                     offset += 12;
+
+                    int nodeIndex = nodeStack[nodeStack.Count - 1];
+                    _hierarchy[nodeIndex].AddSubNode(command, translation, Quaternion.identity, Vector3.one);
                 }
                 else if (command == 0x30)
                 {

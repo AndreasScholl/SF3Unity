@@ -1,8 +1,10 @@
 <audio>
 	<!-- sound effects -->
-	<sound name="switch" file="Sound/switch" />
+	<sound name="sword" file="Sound/sword" />
+	<sound name="hit" file="Sound/hit" />
   
 	<!-- music tracks -->
-	<track name="sf3" file="Sound/sf3_music1"  volume="0,5" />
+	<track name="sf3" file="Sound/sf3_music1" volume="0,5" />
+	<track name="battle" file="Sound/battle_attack" volume="0,5" />
 
 </audio>

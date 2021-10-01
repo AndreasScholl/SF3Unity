@@ -11,6 +11,11 @@ public class CameraControl : MonoBehaviour
     public float _cameraDampTime = 0.25f;
 
     public float _cameraDistance = 3.5f;
+    public float CameraDistance
+    {
+        get { return _cameraDistance; }
+        set { _cameraDistance = value; }
+    }
 
     public float _cameraHeight = 2f;
     public float CameraHeight
@@ -20,7 +25,7 @@ public class CameraControl : MonoBehaviour
     }
 
     public float _cameraLookAtHeight = 1.25f;
-    public float CameraLookAtHeight
+    public float LookAtHeight
     {
         get { return _cameraLookAtHeight; }
         set { _cameraLookAtHeight = value; }
@@ -92,6 +97,12 @@ public class CameraControl : MonoBehaviour
         set { _viewAngle = value; }
     }
 
+    private float _currentCameraHeight;
+    private float _currentCameraDistance;
+
+    Vector2 _cameraSettingVelocity = Vector2.zero;
+    public float _cameraSettingDampTime = 0.25f;
+
     private void Awake()
     {
         _cameraMaxSpeed = 30f;
@@ -106,9 +117,6 @@ public class CameraControl : MonoBehaviour
 
         _virtualPosition = transform.position;
 
-        _cameraDistanceClosingFactor = 0.1f;
-        _cameraHeightClosingFactor = 0.05f;
-
         _lerpActive = false;
     }
 
@@ -119,6 +127,9 @@ public class CameraControl : MonoBehaviour
 
         GameObject virtualPosObj = new GameObject("VirtualCameraPos");
         _virtualPositionTransform = virtualPosObj.transform;
+
+        _currentCameraDistance = _cameraDistance;
+        _currentCameraHeight = _cameraHeight;
 
         // set layer cull distances to max view distance
         //float[] distances = new float[32];
@@ -135,6 +146,13 @@ public class CameraControl : MonoBehaviour
         {
             return;
         }
+
+        // animate camera distance and height
+        Vector2 cameraSetting = new Vector2(_currentCameraDistance, _currentCameraHeight);
+        Vector2 cameraTargetSetting = new Vector2(_cameraDistance, _cameraHeight);
+        cameraSetting = Vector2.SmoothDamp(cameraSetting, cameraTargetSetting, ref _cameraSettingVelocity, _cameraSettingDampTime);
+        _currentCameraDistance = cameraSetting.x;
+        _currentCameraHeight = cameraSetting.y;
 
         // subtract previous shake
         transform.position = transform.position - _shakeVector;
@@ -216,7 +234,6 @@ public class CameraControl : MonoBehaviour
 
                     if (_lookAtXLimit == true)
                     {
-                        // limit x-angle (used for bship sequence)
                         Vector3 cameraAngle = transform.localEulerAngles;
                         if (cameraAngle.x < -180f)
                         {
@@ -257,8 +274,6 @@ public class CameraControl : MonoBehaviour
 
         float cameraYDistance = GetCameraYDistance(targetPos.y);
 
-        //BrUI.Instance.Debug1.text = cameraYDistance.ToString();
-
         cameraSpeed += cameraYDistance * 2f;
 
         cameraTargetDistance -= 2.0f;
@@ -267,18 +282,7 @@ public class CameraControl : MonoBehaviour
             cameraTargetDistance = 0f;
         }
         float cameraDistanceSpeed = cameraTargetDistance / 10f;
-        //BrUI.Instance.Debug1.text = cameraDistanceSpeed.ToString();
         cameraSpeed += cameraDistanceSpeed;
-
-        //BrUI.Instance.Debug1.text = cameraSpeed.ToString();
-        //BrUI.Instance.Debug1.text = _requestRotationTime.ToString();
-
-        //float cameraMaxDistance = 8f;
-
-        //if (cameraTargetDistance >= cameraMaxDistance)
-        //{
-        //    cameraMaxSpeed = cameraTargetDistance * 1.5f;
-        //}
 
         if (cameraSpeed > _cameraMaxSpeed)
         {
@@ -329,8 +333,8 @@ public class CameraControl : MonoBehaviour
         // apply rotation and camera height
         //
         Vector3 cameraDirection = Quaternion.Euler(0f, _viewAngle, 0f) * Vector3.forward;
-        movePosition = movePosition + (cameraDirection * _cameraDistance);
-        movePosition.y += _cameraHeight;
+        movePosition = movePosition + (cameraDirection * _currentCameraDistance);
+        movePosition.y += _currentCameraHeight;
 
         // phase 2: collision based on current move position
         //
@@ -548,36 +552,6 @@ public class CameraControl : MonoBehaviour
         return targetPos;
     }
 
-    //private Vector3 GetCameraTargetPosWithRotation(float angle)
-    //{
-    //    Quaternion targetRotation = _target.GetLookRotationWithOffset(angle);
-
-    //    float cameraDistance = GetVirtualTargetDistance();
-    //    cameraDistance -= (cameraDistance - _cameraDistance) * _cameraDistanceClosingFactor;
-
-    //    float cameraHeight = GetVirtualTargetCameraHeight();
-
-    //    //BrUI.Instance.Debug1.text = (cameraHeight - _cameraHeight).ToString();
-
-    //    cameraHeight -= (cameraHeight - _cameraHeight) * _cameraHeightClosingFactor;
-
-    //    //Vector3 targetPos = _target.GetTransform().position + (targetRotation * (Vector3.forward * -_cameraDistance));
-    //    Vector3 targetPos = _target.GetTransform().position + (targetRotation * (Vector3.forward * -cameraDistance));
-    //    targetPos.y += cameraHeight;
-
-    //    return targetPos;
-    //}
-
-    //private Vector3 GetInitialTargetPosWithRotation(float angle)
-    //{
-    //    Quaternion targetRotation = _target.GetLookRotationWithOffset(angle);
-
-    //    Vector3 targetPos = _target.GetTransform().position + (targetRotation * (Vector3.forward * -_cameraDistance));
-    //    targetPos.y += _cameraHeight;
-
-    //    return targetPos;
-    //}
-
     private Vector3 GetCameraTargetPosWithWorldRotation(float angle)
     {
         Quaternion targetRotation = Quaternion.Euler(new Vector3(0f, angle, 0f));
@@ -588,30 +562,6 @@ public class CameraControl : MonoBehaviour
         return targetPos;
     }
 
-    //public void RequestRotation(float angle, bool immediate = false, float time = 1f)
-    //{
-    //    _requestRotationAngle = angle;
-    //    _requestRotationTime = time;
-
-    //    if (immediate == true)
-    //    {
-    //        _requestRotationTime = 0f;
-
-    //        // set virtual pos to target without camera movement
-    //        Vector3 targetPos = GetInitialTargetPosWithRotation(angle);
-    //        _virtualPosition = targetPos;
-    //    }
-
-    //    //_cameraToTarget = immediate;
-    //}
-
-    //public void RequestRotationLookAround(float angle)
-    //{
-    //    // set virtual pos to target with height and distance correction
-    //    Vector3 targetPos = GetCameraTargetPosWithRotation(angle);
-    //    _virtualPosition = targetPos;
-    //}
-
     public void RequestWorldRotation(float angle)
     {
         _requestRotationAngle = angle;
@@ -619,17 +569,6 @@ public class CameraControl : MonoBehaviour
 
         _cameraToTarget = true;
     }
-
-    //public void SetCameraStartPos(float rotation = 0f)
-    //{
-    //    transform.position = GetInitialTargetPosWithRotation(rotation);
-    //    _virtualPosition = transform.position;
-
-    //    _hitMovement = false;       // cancel hit movement
-
-    //    Vector3 lookAtPosition = GetLookAtPosition();
-    //    transform.LookAt(lookAtPosition);
-    //}
 
     public void SetPosition(Vector3 position)
     {
@@ -804,5 +743,10 @@ public class CameraControl : MonoBehaviour
     {
         _lookAtXLimit = enable;
         _lookAtMaxAngleX = angle;
+    }
+
+    public void SnapToTarget()
+    {
+        _cameraToTarget = true;
     }
 }

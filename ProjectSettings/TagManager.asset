@@ -14,19 +14,19 @@ TagManager:
   - UI
   - 
   - 
-  - Lighting
+  - Wall
   - Ground
-  - Postprocessing
-  - Camera
-  - StereoRender_Ignore
-  - Dynamic
+  - Interaction
+  - LightVolume
+  - Sprite
+  - 
   - Hud
-  - Suimono_Water
-  - Suimono_Depth
-  - Suimono_Screen
-  - Trigger
-  - DynamicIgnoreProjectile
-  - DynamicCameraCollision
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
   - 
   - 
   - 
