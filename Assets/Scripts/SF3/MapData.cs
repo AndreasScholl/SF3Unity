@@ -201,7 +201,7 @@ namespace Shiningforce
 
                 CreateTriggerBoundsMap();
 
-                DebugHeightMap(_heightData);
+                //DebugHeightMap(_heightData);
             }
 
             _visibleSurface = true;
@@ -1721,11 +1721,11 @@ namespace Shiningforce
                         texture = CreatePalettizedTextureFromMemory(planeData, 512, 128, palette);
                     }
 
-                    if (texture != null)
-                    {
-                        byte[] bytes = texture.EncodeToPNG();
-                        File.WriteAllBytes(Directory.GetCurrentDirectory() + "/textures/plane" + count + ".png", bytes);
-                    }
+                    //if (texture != null)
+                    //{
+                    //    byte[] bytes = texture.EncodeToPNG();
+                    //    File.WriteAllBytes(Directory.GetCurrentDirectory() + "/textures/plane" + count + ".png", bytes);
+                    //}
                 }
             }
         }
