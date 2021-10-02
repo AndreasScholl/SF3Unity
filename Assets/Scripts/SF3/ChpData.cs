@@ -38,7 +38,7 @@ namespace Shiningforce
 
             // extract name from path
             _name = Util.FileSystemHelper.GetFileNameWithoutExtensionFromPath(filePath);
-            Debug.Log("Map: " + _name);
+            Debug.Log("CHP: " + _name);
 
             _data = File.ReadAllBytes(filePath);
 
@@ -79,9 +79,12 @@ namespace Shiningforce
             int characterSheetNo = ByteArray.GetInt16(_data, offset);
             if (characterSheetNo == 0xffff)
             {
+                // empty sheet
                 sheetOffset += 2;
                 return null;
             }
+
+            Debug.Log("--- SHEET: " + _sheetCount + " ---");
 
             int width = ByteArray.GetInt16(_data, offset + 2);
             int height = ByteArray.GetInt16(_data, offset + 4);
@@ -99,42 +102,34 @@ namespace Shiningforce
             //offset += 26;
 
             // read list of animation offsets. Always 0x10 entries, unused entries are zero
-            List<int> animationOffsets = new List<int>();
             offset = animationsOffset;
-            for (int i = 0; i < 0x10; i++)
+            for (int anim = 0; anim < 0x10; anim++)
             {
-                int animOffset = ByteArray.GetInt32(_data, offset) + sheetOffset;
+                int animOffset = ByteArray.GetInt32(_data, offset);
                 if (animOffset != 0)
                 {
-                    animationOffsets.Add(animOffset);
+                    animOffset += sheetOffset;
+    
+                    Debug.Log(animOffset.ToString("X6"));
+                    for (int frame = 0; frame < 0x10; frame++)
+                    {
+                        int spriteIndex = ByteArray.GetInt16(_data, animOffset);
+                        int attribute = ByteArray.GetInt16(_data, animOffset + 2);
+
+                        Debug.Log("spriteIndex: " + spriteIndex.ToString("X4") + " attrib: " + attribute.ToString("X4"));
+
+                        if ((spriteIndex & 0x80) != 0) // end?
+                        {
+                            break;
+                        }
+
+                        animOffset += 4;
+                    }
                 }
                 offset += 4;
             }
 
-            // read animations
-            for (int count = 0; count < animationOffsets.Count; count++)
-            {
-                int animOffset = animationOffsets[count];
-
-                Debug.Log(animOffset.ToString("X6"));
-                for (int i = 0; i < 0x10; i++)
-                {
-                    int spriteIndex = ByteArray.GetInt16(_data, animOffset);
-                    int attribute = ByteArray.GetInt16(_data, animOffset + 2);
-
-                    Debug.Log("spriteIndex: " + spriteIndex + " attrib: " + attribute.ToString("X4"));
-
-                    if (attribute == 0)
-                    {
-                        // maybe: if spriteIndex msb is set?
-                        break;
-                    }
-
-                    animOffset += 4;
-                }
-            }
-
-            List<int> offsets = new List<int>();
+            List<int> spriteOffsets = new List<int>();
 
             offset = spriteListOffset;
 
@@ -147,14 +142,14 @@ namespace Shiningforce
                     break;
                 }
 
-                offsets.Add(spriteOffset + sheetOffset);
+                spriteOffsets.Add(spriteOffset + sheetOffset);
 
                 offset += 4;
             }
 
             List<Color[]> sprites = new List<Color[]>();
 
-            foreach (int spriteOffset in offsets)
+            foreach (int spriteOffset in spriteOffsets)
             {
                 Color[] sprite = new Color[width * height];
 
@@ -201,8 +196,8 @@ namespace Shiningforce
 
             texture.Apply();
 
-            //byte[] bytes = texture.EncodeToPNG();
-            //File.WriteAllBytes(Directory.GetCurrentDirectory() + "/textures/" + _name + "_sheet" + _sheetCount + ".png", bytes);
+            byte[] bytes = texture.EncodeToPNG();
+            File.WriteAllBytes(Directory.GetCurrentDirectory() + "/textures/" + _name + "_sheet" + _sheetCount + ".png", bytes);
 
             SheetInfo info = new SheetInfo();
             info.SpriteWidth = width;
