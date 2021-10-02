@@ -519,5 +519,32 @@ namespace Shiningforce
                 //replaceCubemap.SetImage(imageLoader.GetTextureByIndex(0));
             }
         }
+
+        public string GetChpFileByIndex(int index)
+        {
+            return _chpFiles[index];
+        }
+
+        public int GetChpFileCount()
+        {
+            return _chpFiles.Length;
+        }
+
+        public int GetChpIndex(string chpName)
+        {
+            int index = 0;
+
+            foreach (string filePath in _chpFiles)
+            {
+                if (FileSystemHelper.GetFileNameWithoutExtensionFromPath(filePath).ToLower() == chpName.ToLower())
+                {
+                    return index;
+                }
+
+                index++;
+            }
+
+            return -1;
+        }
     }
 }

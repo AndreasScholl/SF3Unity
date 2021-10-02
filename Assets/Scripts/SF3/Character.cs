@@ -52,6 +52,7 @@ namespace Shiningforce
         public float _lightFadeOutSpeed = 5f;
 
         //private bool _cameraTarget = true;
+        private int _chpFileIndex = 0;
 
         void Start()
         {
@@ -71,15 +72,8 @@ namespace Shiningforce
                 renderer.gameObject.layer = LayerMask.NameToLayer("Sprite");
             }
 
-            ChpData chrData = new ChpData();
-            //chrData.ReadFile(Loader.Instance._imagePath + "/CBP00.CHP");
-            //chrData.ReadFile(Loader.Instance._imagePath + "/CBP01.CHP");
-            chrData.ReadFile(Loader.Instance._imagePath + "/CBP01.CHP");
-            int sheetIndex = 1;
-            _sprites = chrData.CreateSprites(sheetIndex);
-
-            //_sprites = Resources.LoadAll<Sprite>("Textures/spritesheet_cbf00_16384");
-            //_sprites = Resources.LoadAll<Sprite>("Textures/0008");
+            _chpFileIndex = Loader.Instance.GetChpIndex("CBP00");
+            LoadSprites();
 
             _animFrame = 0;
 
@@ -185,6 +179,8 @@ namespace Shiningforce
         void Update()
         {
             InputHelper.ReadInput(_inputData);
+
+            DebugSprites();
 
             float moveAngle = 0f;
             bool moving = false;
@@ -577,9 +573,14 @@ namespace Shiningforce
 
             foreach (SpriteRenderer renderer in _spriteRenderers)
             {
-                renderer.sprite = _sprites[(_animFrame *_sheetColumns) + column];
-                renderer.flipX = flip;
-                
+                int frame = (_animFrame * _sheetColumns) + column;
+
+                if (frame < _sprites.Length)
+                {
+                    renderer.sprite = _sprites[frame];
+                    renderer.flipX = flip;
+                }
+
                 if (_inLight)
                 {
                     _lightIntensity = 3.5f;
@@ -806,6 +807,46 @@ namespace Shiningforce
             {
                 //Debug.Log("Exit Light");
                 _inLight = false;
+            }
+        }
+
+        private void LoadSprites()
+        {
+            ChpData chrData = new ChpData();
+            //chrData.ReadFile(Loader.Instance._imagePath + "/CBP00.CHP");
+            //chrData.ReadFile(Loader.Instance._imagePath + "/CBP01.CHP");
+            //chrData.ReadFile(Loader.Instance._imagePath + "/CBP03.CHP");
+            string filePath = Loader.Instance.GetChpFileByIndex(_chpFileIndex);
+            chrData.ReadFile(filePath);
+            int sheetIndex = 1;
+            _sprites = chrData.CreateSprites(sheetIndex);
+        }
+
+        private void DebugSprites()
+        {
+            // sprite debug
+            if (_inputData.Button1Down)
+            {
+                _chpFileIndex++;
+
+                if (_chpFileIndex == Loader.Instance.GetChpFileCount())
+                {
+                    _chpFileIndex = 0;
+                }
+
+                LoadSprites();
+            }
+
+            if (_inputData.Button2Down)
+            {
+                _chpFileIndex--;
+
+                if (_chpFileIndex< 0)
+                {
+                    _chpFileIndex = Loader.Instance.GetChpFileCount() - 1;
+                }
+
+                LoadSprites();
             }
         }
     }

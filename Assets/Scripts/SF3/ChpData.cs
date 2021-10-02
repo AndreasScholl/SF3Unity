@@ -51,20 +51,16 @@ namespace Shiningforce
             {
                 Texture2D texture = ReadSpriteSheet(ref sheetOffset, columns);
 
-                if (texture == null)
+                // skip to next full 0x800 boundary
+                sheetOffset = ((sheetOffset + 0x7ff) / 0x800) * 0x800;
+
+                if (sheetOffset >= _data.Length)
                 {
                     endOfSprites = true;
                 }
-                else
+
+                if (texture != null)
                 {
-                    // skip to next full 0x800 boundary
-                    sheetOffset = ((sheetOffset + 0x7ff) / 0x800) * 0x800;
-
-                    if (sheetOffset >= _data.Length)
-                    {
-                        endOfSprites = true;
-                    }
-
                     textures.Add(texture);
 
                     _sheetCount++;
@@ -83,6 +79,7 @@ namespace Shiningforce
             int characterSheetNo = ByteArray.GetInt16(_data, offset);
             if (characterSheetNo == 0xffff)
             {
+                sheetOffset += 2;
                 return null;
             }
 
@@ -204,8 +201,8 @@ namespace Shiningforce
 
             texture.Apply();
 
-            //byte[] bytes = texture.EncodeToPNG();
-            //File.WriteAllBytes(Directory.GetCurrentDirectory() + "/textures/" + _name + "_sheet" + _sheetCount + ".png", bytes);
+            byte[] bytes = texture.EncodeToPNG();
+            File.WriteAllBytes(Directory.GetCurrentDirectory() + "/textures/" + _name + "_sheet" + _sheetCount + ".png", bytes);
 
             SheetInfo info = new SheetInfo();
             info.SpriteWidth = width;
