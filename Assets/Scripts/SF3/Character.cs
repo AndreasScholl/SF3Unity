@@ -69,8 +69,9 @@ namespace Shiningforce
                 renderer.gameObject.layer = LayerMask.NameToLayer("Sprite");
             }
 
-            _chpFileIndex = Loader.Instance.GetChpIndex("CBP00");
+            //_chpFileIndex = Loader.Instance.GetChpIndex("CBP00");
             //_chpFileIndex = Loader.Instance.GetChpIndex("CBE00");
+            _chpFileIndex = Loader.Instance.GetChpIndex("CBE05");
             //_chpFileIndex = Loader.Instance.GetChpIndex("CBF00");
             int sheetIndex = 1;
             LoadSprites(sheetIndex);
@@ -879,8 +880,6 @@ namespace Shiningforce
             string filePath = Loader.Instance.GetChpFileByIndex(_chpFileIndex);
             chrData.ReadFile(filePath);
             _sheetColumns = chrData.GetSheetColumns(sheetIndex);
-
-            Debug.Log("COLUMNS: " + _sheetColumns);
 
             _sprites = chrData.CreateSprites(sheetIndex);
         }

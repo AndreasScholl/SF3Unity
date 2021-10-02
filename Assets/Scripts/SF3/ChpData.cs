@@ -251,7 +251,7 @@ namespace Shiningforce
 
                     Sprite sprite = Sprite.Create(texture, new Rect(info.SpriteWidth * sX,
                                                                     info.SpriteHeight * sY,
-                                                                    info.SpriteWidth, info.SpriteHeight), new Vector2(0.5f, 0.5f), 100.0f);
+                                                                    info.SpriteWidth, info.SpriteHeight), new Vector2(0.5f, 0f), 100.0f);
 
                     sprites.Add(sprite);
 
