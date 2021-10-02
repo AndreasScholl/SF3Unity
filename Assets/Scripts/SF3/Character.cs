@@ -31,6 +31,8 @@ namespace Shiningforce
 
         private int[] _walkTable = new int[] { 0, 1, 2, 3, 4, 3, 2, 1 };
         private int[] _standTable = new int[] { 5, 6, 7, 6 };
+        //private int[] _walkTable = new int[] { 3, 4, 5, 6, 7, 6, 5, 4 };
+        //private int[] _standTable = new int[] { 0, 1, 2, 1 };
 
         private CapsuleCollider _collider;
         private float _hitRadius = 0.75f;
@@ -51,7 +53,6 @@ namespace Shiningforce
         private float _lightIntensity = 1;
         public float _lightFadeOutSpeed = 5f;
 
-        //private bool _cameraTarget = true;
         private int _chpFileIndex = 0;
 
         void Start()
@@ -60,11 +61,6 @@ namespace Shiningforce
 
             _cameraControl = Camera.main.GetComponent<CameraControl>();
 
-            //if (_cameraTarget == true)
-            //{
-            //    return;
-            //}
-
             _spriteRenderers = gameObject.GetComponentsInChildren<SpriteRenderer>();
 
             foreach (SpriteRenderer renderer in _spriteRenderers)
@@ -72,7 +68,9 @@ namespace Shiningforce
                 renderer.gameObject.layer = LayerMask.NameToLayer("Sprite");
             }
 
-            _chpFileIndex = Loader.Instance.GetChpIndex("CBP00");
+            //_chpFileIndex = Loader.Instance.GetChpIndex("CBP00");
+            _chpFileIndex = Loader.Instance.GetChpIndex("CBE00");
+            _sheetColumns = 4; 
             LoadSprites();
 
             _animFrame = 0;
@@ -524,52 +522,8 @@ namespace Shiningforce
             dir = (int)(objViewAngleCorrected / 30.0f);
 
             // convert dir to column and flip
-            int column = 0;
             bool flip = false;
-            switch (dir)
-            {
-                case 0:
-                    column = 4;         // down
-                    break;
-                case 1:
-                    column = 0;
-                    break;
-                case 2:
-                    column = 0;
-                    break;
-                case 3:
-                    column = 1;         // right
-                    break;
-                case 4:
-                    column = 2;
-                    break;
-                case 5:
-                    column = 3;
-                    break;
-                case 6:
-                    column = 5;         // up
-                    break;
-                case 7:
-                    column = 3;
-                    flip = true;
-                    break;
-                case 8:
-                    column = 2;
-                    flip = true;
-                    break;
-                case 9:                 // left
-                    column = 1;
-                    flip = true;
-                    break;
-                case 10:
-                    column = 0;
-                    flip = true;
-                    break;
-                case 11:
-                    column = 0;
-                    flip = true;
-                    break;
-            }
+            int column = GetColumnAndFlipfromDir(dir, ref flip);
 
             foreach (SpriteRenderer renderer in _spriteRenderers)
             {
@@ -597,6 +551,113 @@ namespace Shiningforce
 
                 renderer.sharedMaterial.SetFloat("_Intensity", _lightIntensity);
             }
+        }
+
+        // input: 
+        //   dir: one of 12 directions (0 is down, 3 is right, 6 is up, ...)
+        //
+        private int GetColumnAndFlipfromDir(int dir, ref bool flip)
+        {
+            int column = 0;
+
+            if (_sheetColumns == 6)
+            {
+                switch (dir)
+                {
+                    case 0:
+                        column = 4;         // down
+                        break;
+                    case 1:
+                        column = 0;
+                        break;
+                    case 2:
+                        column = 0;
+                        break;
+                    case 3:
+                        column = 1;         // right
+                        break;
+                    case 4:
+                        column = 2;
+                        break;
+                    case 5:
+                        column = 3;
+                        break;
+                    case 6:
+                        column = 5;         // up
+                        break;
+                    case 7:
+                        column = 3;
+                        flip = true;
+                        break;
+                    case 8:
+                        column = 2;
+                        flip = true;
+                        break;
+                    case 9:                 // left
+                        column = 1;
+                        flip = true;
+                        break;
+                    case 10:
+                        column = 0;
+                        flip = true;
+                        break;
+                    case 11:
+                        column = 0;
+                        flip = true;
+                        break;
+                }
+
+            }
+            else
+            {
+                switch (dir)
+                {
+                    case 0:
+                        column = 0;         // down
+                        flip = true;
+                        break;
+                    case 1:
+                        column = 0;
+                        break;
+                    case 2:
+                        column = 1;
+                        break;
+                    case 3:
+                        column = 1;         // right
+                        break;
+                    case 4:
+                        column = 2;
+                        break;
+                    case 5:
+                        column = 3;
+                        break;
+                    case 6:
+                        column = 3;         // up
+                        break;
+                    case 7:
+                        column = 3;
+                        flip = true;
+                        break;
+                    case 8:
+                        column = 2;
+                        flip = true;
+                        break;
+                    case 9:                 // left
+                        column = 1;
+                        flip = true;
+                        break;
+                    case 10:
+                        column = 1;
+                        flip = true;
+                        break;
+                    case 11:
+                        column = 0;
+                        flip = true;
+                        break;
+                }
+            }
+
+            return column;
         }
 
         void TurnToAngle(float moveAngle)
@@ -813,11 +874,8 @@ namespace Shiningforce
         private void LoadSprites()
         {
             ChpData chrData = new ChpData();
-            //chrData.ReadFile(Loader.Instance._imagePath + "/CBP00.CHP");
-            //chrData.ReadFile(Loader.Instance._imagePath + "/CBP01.CHP");
-            //chrData.ReadFile(Loader.Instance._imagePath + "/CBP03.CHP");
             string filePath = Loader.Instance.GetChpFileByIndex(_chpFileIndex);
-            chrData.ReadFile(filePath);
+            chrData.ReadFile(filePath, _sheetColumns);
             int sheetIndex = 1;
             _sprites = chrData.CreateSprites(sheetIndex);
         }
