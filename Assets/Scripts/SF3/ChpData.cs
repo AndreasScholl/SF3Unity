@@ -19,6 +19,7 @@ namespace Shiningforce
 
         Texture2D[] _textures;
         List<SheetInfo> _sheetInfos = new List<SheetInfo>();
+        List<Animation> _animations = new List<Animation>();
 
         class SheetInfo
         {
@@ -29,7 +30,18 @@ namespace Shiningforce
             public int Columns;
         }
 
-        public bool ReadFile(string filePath, int columns = 6)
+        class AnimFrame
+        {
+            public int Frame;
+            public int Duration;
+        }
+
+        class Animation
+        {
+            public List<AnimFrame> Frames = new List<AnimFrame>();
+        }
+
+        public bool ReadFile(string filePath)
         {
             if (File.Exists(filePath) == false)
             {
@@ -49,7 +61,7 @@ namespace Shiningforce
 
             while (endOfSprites == false)
             {
-                Texture2D texture = ReadSpriteSheet(ref sheetOffset, columns);
+                Texture2D texture = ReadSpriteSheet(ref sheetOffset);
 
                 // skip to next full 0x800 boundary
                 sheetOffset = ((sheetOffset + 0x7ff) / 0x800) * 0x800;
@@ -72,7 +84,7 @@ namespace Shiningforce
             return true;
         }
 
-        Texture2D ReadSpriteSheet(ref int sheetOffset, int columns)
+        Texture2D ReadSpriteSheet(ref int sheetOffset)
         {
             int offset = sheetOffset;
 
@@ -89,7 +101,8 @@ namespace Shiningforce
             int width = ByteArray.GetInt16(_data, offset + 2);
             int height = ByteArray.GetInt16(_data, offset + 4);
 
-            int unknown1 = ByteArray.GetInt16(_data, offset + 6);
+            int columns = _data[offset + 6];
+            int unknown1 = _data[offset + 7];
             int unknown2 = ByteArray.GetInt16(_data, offset + 8);
             int unknown3 = ByteArray.GetInt16(_data, offset + 10);
             int unknown4 = ByteArray.GetInt16(_data, offset + 12);
@@ -99,7 +112,6 @@ namespace Shiningforce
             int animationsOffset = ByteArray.GetInt32(_data, offset + 20) + sheetOffset;
 
             int endOfList = ByteArray.GetInt16(_data, offset + 24);
-            //offset += 26;
 
             // read list of animation offsets. Always 0x10 entries, unused entries are zero
             offset = animationsOffset;
@@ -108,6 +120,8 @@ namespace Shiningforce
                 int animOffset = ByteArray.GetInt32(_data, offset);
                 if (animOffset != 0)
                 {
+                    Animation animation = new Animation();
+
                     animOffset += sheetOffset;
     
                     Debug.Log(animOffset.ToString("X6"));
@@ -123,8 +137,15 @@ namespace Shiningforce
                             break;
                         }
 
+                        AnimFrame animFrame = new AnimFrame();
+                        animFrame.Frame = spriteIndex;
+                        animFrame.Duration = attribute;
+                        animation.Frames.Add(animFrame);
+
                         animOffset += 4;
                     }
+
+                    _animations.Add(animation);
                 }
                 offset += 4;
             }
@@ -239,6 +260,11 @@ namespace Shiningforce
             }
 
             return sprites.ToArray();
+        }
+
+        public int GetSheetColumns(int sheetIndex)
+        {
+            return _sheetInfos[sheetIndex].Columns;
         }
     }
 }

@@ -29,7 +29,8 @@ namespace Shiningforce
         private int[] _animTable;
         private int _sheetColumns = 6;
 
-        private int[] _walkTable = new int[] { 0, 1, 2, 3, 4, 3, 2, 1 };
+        //private int[] _walkTable = new int[] { 0, 1, 2, 3, 4, 3, 2, 1 };
+        private int[] _walkTable = new int[] { 0, 2, 3, 4, 1 };
         private int[] _standTable = new int[] { 5, 6, 7, 6 };
         //private int[] _walkTable = new int[] { 3, 4, 5, 6, 7, 6, 5, 4 };
         //private int[] _standTable = new int[] { 0, 1, 2, 1 };
@@ -68,10 +69,11 @@ namespace Shiningforce
                 renderer.gameObject.layer = LayerMask.NameToLayer("Sprite");
             }
 
-            //_chpFileIndex = Loader.Instance.GetChpIndex("CBP00");
-            _chpFileIndex = Loader.Instance.GetChpIndex("CBE00");
-            _sheetColumns = 4; 
-            LoadSprites();
+            _chpFileIndex = Loader.Instance.GetChpIndex("CBP00");
+            //_chpFileIndex = Loader.Instance.GetChpIndex("CBE00");
+            //_chpFileIndex = Loader.Instance.GetChpIndex("CBF00");
+            int sheetIndex = 1;
+            LoadSprites(sheetIndex);
 
             _animFrame = 0;
 
@@ -871,12 +873,15 @@ namespace Shiningforce
             }
         }
 
-        private void LoadSprites()
+        private void LoadSprites(int sheetIndex = 1)
         {
             ChpData chrData = new ChpData();
             string filePath = Loader.Instance.GetChpFileByIndex(_chpFileIndex);
-            chrData.ReadFile(filePath, _sheetColumns);
-            int sheetIndex = 1;
+            chrData.ReadFile(filePath);
+            _sheetColumns = chrData.GetSheetColumns(sheetIndex);
+
+            Debug.Log("COLUMNS: " + _sheetColumns);
+
             _sprites = chrData.CreateSprites(sheetIndex);
         }
 
