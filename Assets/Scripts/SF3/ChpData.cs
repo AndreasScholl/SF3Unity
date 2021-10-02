@@ -201,8 +201,8 @@ namespace Shiningforce
 
             texture.Apply();
 
-            byte[] bytes = texture.EncodeToPNG();
-            File.WriteAllBytes(Directory.GetCurrentDirectory() + "/textures/" + _name + "_sheet" + _sheetCount + ".png", bytes);
+            //byte[] bytes = texture.EncodeToPNG();
+            //File.WriteAllBytes(Directory.GetCurrentDirectory() + "/textures/" + _name + "_sheet" + _sheetCount + ".png", bytes);
 
             SheetInfo info = new SheetInfo();
             info.SpriteWidth = width;
