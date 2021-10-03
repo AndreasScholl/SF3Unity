@@ -19,24 +19,29 @@ namespace Shiningforce
         private float _moveAngle = 0f;
 
         private SpriteRenderer[] _spriteRenderers;
-        private Sprite[] _sprites;
+        //private Sprite[] _sprites;
+        private SpriteSheets _spriteSheets;
+        private SpriteSheet _spriteSheet;
+        private int[] _sheetIds;
+        private int _selectedId;
 
         private float _animTime;
-        private int _animFrame = 0;
-        public float _animFrameTime = 0.1f;
+        //private int _animFrame = 0;
+        //public float _animFrameTime = 0.1f;
 
-        private int _animIndex = 0;
-        private int[] _animTable;
-        private int _sheetColumns = 6;
+        //private int _animIndex = 0;
+        //private int[] _animTable;
+        //private int _sheetColumns = 6;
 
         //private int[] _walkTable = new int[] { 0, 1, 2, 3, 4, 3, 2, 1 };
-        private int[] _walkTable = new int[] { 0, 2, 3, 4, 1 };
-        private int[] _standTable = new int[] { 5, 6, 7, 6 };
+        //private int[] _walkTable = new int[] { 0, 2, 3, 4, 1 };
+        //private int[] _standTable = new int[] { 5, 6, 7, 6 };
         //private int[] _walkTable = new int[] { 3, 4, 5, 6, 7, 6, 5, 4 };
         //private int[] _standTable = new int[] { 0, 1, 2, 1 };
 
         private CapsuleCollider _collider;
         private float _hitRadius = 0.75f;
+        //private float _hitRadius = 1.0f;
         private float _colliderHeight = 4f;
 
         float[] _cameraDistances = new float[] { 30f, 40f, 60f };
@@ -69,14 +74,14 @@ namespace Shiningforce
                 renderer.gameObject.layer = LayerMask.NameToLayer("Sprite");
             }
 
-            //_chpFileIndex = Loader.Instance.GetChpIndex("CBP00");
+            _chpFileIndex = Loader.Instance.GetChpIndex("CBP00");
+            //_chpFileIndex = Loader.Instance.GetChpIndex("CBW00");
             //_chpFileIndex = Loader.Instance.GetChpIndex("CBE00");
-            _chpFileIndex = Loader.Instance.GetChpIndex("CBE05");
+            //_chpFileIndex = Loader.Instance.GetChpIndex("CBE05");
             //_chpFileIndex = Loader.Instance.GetChpIndex("CBF00");
-            int sheetIndex = 1;
-            LoadSprites(sheetIndex);
+            LoadSprites();
 
-            _animFrame = 0;
+            _animTime = 0f;
 
             // collision
             _collider = gameObject.AddComponent<CapsuleCollider>();
@@ -179,6 +184,11 @@ namespace Shiningforce
 
         void Update()
         {
+            // show selected sprite / sheetid
+            string spritePath = Loader.Instance.GetChpFileByIndex(_chpFileIndex);
+            string spriteFile = Util.FileSystemHelper.GetFileNameWithoutExtensionFromPath(spritePath);
+            UI.Instance.Debug1.text = spriteFile + " (" + (_selectedId + 1) + " / " + _sheetIds.Length + ")";
+
             InputHelper.ReadInput(_inputData);
 
             DebugSprites();
@@ -276,11 +286,18 @@ namespace Shiningforce
 
             if (moving)
             {
-                SetSpriteAnimation(_walkTable, 0.1f);
+                _spriteSheet.State = AnimationState.WALK;
             }
             else
             {
-                SetSpriteAnimation(_standTable, 0.2f);
+                if (_inputData.Button3)
+                {
+                    _spriteSheet.State = AnimationState.KNEELINGSTATIONARY;
+                }
+                else
+                {
+                    _spriteSheet.State = AnimationState.IDLE;
+                }
             }
 
             UpdateSpriteAnimation();
@@ -472,37 +489,39 @@ namespace Shiningforce
             return position;
         }
 
-        void SetSpriteAnimation(int[] table, float frameTime)
-        {
-            if (_animTable == table)
-            {
-                return;
-            }
+        //void SetSpriteAnimation(int[] table, float frameTime)
+        //{
+        //    if (_animTable == table)
+        //    {
+        //        return;
+        //    }
 
-            _animTable = table;
+        //    _animTable = table;
 
-            _animFrameTime = frameTime;
-            _animTime = _animFrameTime;
+        //    _animFrameTime = frameTime;
+        //    _animTime = _animFrameTime;
 
-            _animIndex = 0;
-            _animFrame = _animTable[_animIndex];
-        }
+        //    _animIndex = 0;
+        //    _animFrame = _animTable[_animIndex];
+        //}
 
         void UpdateSpriteAnimation()
         {
-            _animTime -= Time.deltaTime;
-            if (_animTime <= 0f)
-            {
-                _animTime += _animFrameTime;
-                _animIndex++;
+            _animTime += Time.deltaTime;
 
-                if (_animIndex >= _animTable.Length)
-                {
-                    _animIndex = 0;
-                }
+            //_animTime -= Time.deltaTime;
+            //if (_animTime <= 0f)
+            //{
+            //    _animTime += _animFrameTime;
+            //    _animIndex++;
 
-                _animFrame = _animTable[_animIndex];
-            }
+            //    if (_animIndex >= _animTable.Length)
+            //    {
+            //        _animIndex = 0;
+            //    }
+
+            //    _animFrame = _animTable[_animIndex];
+            //}
 
             // sprite animation test
             float cameraAngle = _inputData.CameraAngle + 180f;
@@ -526,17 +545,21 @@ namespace Shiningforce
 
             // convert dir to column and flip
             bool flip = false;
-            int column = GetColumnAndFlipfromDir(dir, ref flip);
+            int rotation = GetRotationAndFlipfromDir(dir, ref flip);
 
             foreach (SpriteRenderer renderer in _spriteRenderers)
             {
-                int frame = (_animFrame * _sheetColumns) + column;
+                float fps = 30f;
+                int animFrame = (int)Mathf.Round(_animTime * fps);
+                renderer.sprite = _spriteSheet[animFrame, rotation];
+                renderer.flipX = flip;
+                //int frame = (_animFrame * _sheetColumns) + column;
 
-                if (frame < _sprites.Length)
-                {
-                    renderer.sprite = _sprites[frame];
-                    renderer.flipX = flip;
-                }
+                //if (frame < _sprites.Length)
+                //{
+                //    renderer.sprite = _sprites[frame];
+                //    renderer.flipX = flip;
+                //}
 
                 if (_inLight)
                 {
@@ -559,108 +582,65 @@ namespace Shiningforce
         // input: 
         //   dir: one of 12 directions (0 is down, 3 is right, 6 is up, ...)
         //
-        private int GetColumnAndFlipfromDir(int dir, ref bool flip)
+        private int GetRotationAndFlipfromDir(int dir, ref bool flip)
         {
-            int column = 0;
+            int rotation = 0;
 
-            if (_sheetColumns == 6)
+            switch (dir)
             {
-                switch (dir)
-                {
-                    case 0:
-                        column = 4;         // down
-                        break;
-                    case 1:
-                        column = 0;
-                        break;
-                    case 2:
-                        column = 0;
-                        break;
-                    case 3:
-                        column = 1;         // right
-                        break;
-                    case 4:
-                        column = 2;
-                        break;
-                    case 5:
-                        column = 3;
-                        break;
-                    case 6:
-                        column = 5;         // up
-                        break;
-                    case 7:
-                        column = 3;
-                        flip = true;
-                        break;
-                    case 8:
-                        column = 2;
-                        flip = true;
-                        break;
-                    case 9:                 // left
-                        column = 1;
-                        flip = true;
-                        break;
-                    case 10:
-                        column = 0;
-                        flip = true;
-                        break;
-                    case 11:
-                        column = 0;
-                        flip = true;
-                        break;
-                }
-
-            }
-            else
-            {
-                switch (dir)
-                {
-                    case 0:
-                        column = 0;         // down
-                        flip = true;
-                        break;
-                    case 1:
-                        column = 0;
-                        break;
-                    case 2:
-                        column = 1;
-                        break;
-                    case 3:
-                        column = 1;         // right
-                        break;
-                    case 4:
-                        column = 2;
-                        break;
-                    case 5:
-                        column = 3;
-                        break;
-                    case 6:
-                        column = 3;         // up
-                        break;
-                    case 7:
-                        column = 3;
-                        flip = true;
-                        break;
-                    case 8:
-                        column = 2;
-                        flip = true;
-                        break;
-                    case 9:                 // left
-                        column = 1;
-                        flip = true;
-                        break;
-                    case 10:
-                        column = 1;
-                        flip = true;
-                        break;
-                    case 11:
-                        column = 0;
-                        flip = true;
-                        break;
-                }
+                case 0:
+                    // down
+                    if (_spriteSheet.Active)
+                    {
+                        rotation = 4;
+                    }
+                    else
+                    {
+                        rotation = 0;
+                        flip = true;         
+                    }
+                    break;
+                case 1:
+                    rotation = 0;
+                    break;
+                case 2:
+                    rotation = 0;
+                    break;
+                case 3:
+                    rotation = 1;         // right
+                    break;
+                case 4:
+                    rotation = 2;
+                    break;
+                case 5:
+                    rotation = 3;
+                    break;
+                case 6:
+                    rotation = _spriteSheet.Active ? 5 : 3;         // up
+                    break;
+                case 7:
+                    rotation = 3;
+                    flip = true;
+                    break;
+                case 8:
+                    rotation = 2;
+                    flip = true;
+                    break;
+                case 9:                 // left
+                    rotation = 1;
+                    flip = true;
+                    break;
+                case 10:
+                    rotation = 0;
+                    flip = true;
+                    break;
+                case 11:
+                    rotation = 0;
+                    flip = true;
+                    break;
             }
 
-            return column;
+            return rotation;
         }
 
         void TurnToAngle(float moveAngle)
@@ -874,14 +854,14 @@ namespace Shiningforce
             }
         }
 
-        private void LoadSprites(int sheetIndex = 1)
+        private void LoadSprites()
         {
-            ChpData chrData = new ChpData();
             string filePath = Loader.Instance.GetChpFileByIndex(_chpFileIndex);
-            chrData.ReadFile(filePath);
-            _sheetColumns = chrData.GetSheetColumns(sheetIndex);
+            _spriteSheets = new SpriteSheets(filePath);
+            _sheetIds = _spriteSheets.AvailableIDs;
 
-            _sprites = chrData.CreateSprites(sheetIndex);
+            _selectedId = 0;
+            _spriteSheet = _spriteSheets[_sheetIds[_selectedId], true];
         }
 
         private void DebugSprites()
@@ -901,14 +881,14 @@ namespace Shiningforce
 
             if (_inputData.Button2Down)
             {
-                _chpFileIndex--;
+                _selectedId++;
 
-                if (_chpFileIndex< 0)
+                if (_selectedId >= _sheetIds.Length)
                 {
-                    _chpFileIndex = Loader.Instance.GetChpFileCount() - 1;
+                    _selectedId = 0;
                 }
 
-                LoadSprites();
+                _spriteSheet = _spriteSheets[_sheetIds[_selectedId], true];
             }
         }
     }

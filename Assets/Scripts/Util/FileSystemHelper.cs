@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.IO;
 
 namespace Util
@@ -191,22 +192,22 @@ namespace Util
         {
             return (string.IsNullOrEmpty(fileName) == false)
             && fileName.StartsWith(".") == false
-            && (GetInvalidFileNameCharachterIndex(fileName) < 0);
+            && (GetInvalidFileNameCharacterIndex(fileName) < 0);
         }
 
         public static string GetValidFileName(string fileName, char replaceChar = '_')
         {
-            int invalidChar = GetInvalidFileNameCharachterIndex(fileName);
+            int invalidChar = GetInvalidFileNameCharacterIndex(fileName);
             while (invalidChar >= 0)
             {
                 fileName = fileName.Replace(fileName[invalidChar], replaceChar);
-                invalidChar = GetInvalidFileNameCharachterIndex(fileName);
+                invalidChar = GetInvalidFileNameCharacterIndex(fileName);
             }
 
             return fileName;
         }
 
-        private static int GetInvalidFileNameCharachterIndex(string potentialFilename)
+        private static int GetInvalidFileNameCharacterIndex(string potentialFilename)
         {
             int id = -1;
             id = potentialFilename.IndexOfAny(Path.GetInvalidFileNameChars());
@@ -216,6 +217,25 @@ namespace Util
             }
 
             return id;
+        }
+
+        static public string[] GetFiles(string sourceFolder, string filter, SearchOption searchOption)
+        {
+            // ArrayList will hold all file names
+            ArrayList alFiles = new ArrayList();
+
+            // Create an array of filter string
+            string[] MultipleFilters = filter.Split('|');
+
+            // for each filter find mathing file names
+            foreach (string FileFilter in MultipleFilters)
+            {
+                // add found file names to array list
+                alFiles.AddRange(Directory.GetFiles(sourceFolder, FileFilter, searchOption));
+            }
+
+            // returns string array of relevant file names
+            return (string[])alFiles.ToArray(typeof(string));
         }
     }
 }

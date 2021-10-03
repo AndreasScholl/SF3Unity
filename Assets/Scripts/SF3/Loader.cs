@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Util;
@@ -57,7 +58,7 @@ namespace Shiningforce
         string[] _battleTerrainFiles;
         GameObject _battleTerrainRoot = null;
         int _battleTerrainCount = 0;
-        private string[] _chpFiles;
+        private string[] _spriteFiles;
 
         void Awake()
         {
@@ -79,7 +80,8 @@ namespace Shiningforce
             EffectManager.Instance.Load();
 
             // character(sprite) data test
-            _chpFiles = Directory.GetFiles(_imagePath, "*.chp", SearchOption.AllDirectories);
+            //_chpFiles = Directory.GetFiles(_imagePath, "*.chp", SearchOption.AllDirectories);
+            _spriteFiles = FileSystemHelper.GetFiles(_imagePath, "*.chp|*.chr", SearchOption.AllDirectories);
 
             //foreach (string file in _chpFiles)
             //{
@@ -522,19 +524,19 @@ namespace Shiningforce
 
         public string GetChpFileByIndex(int index)
         {
-            return _chpFiles[index];
+            return _spriteFiles[index];
         }
 
         public int GetChpFileCount()
         {
-            return _chpFiles.Length;
+            return _spriteFiles.Length;
         }
 
         public int GetChpIndex(string chpName)
         {
             int index = 0;
 
-            foreach (string filePath in _chpFiles)
+            foreach (string filePath in _spriteFiles)
             {
                 if (FileSystemHelper.GetFileNameWithoutExtensionFromPath(filePath).ToLower() == chpName.ToLower())
                 {
